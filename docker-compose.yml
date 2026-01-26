@@ -1,0 +1,16 @@
+services:
+  sqlserver:
+    image: 'mcr.microsoft.com/mssql/server:2019-latest'
+    container_name: flood-rescue-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_PID=express
+      - MSSQL_SA_PASSWORD=MySuperPass2026
+    ports:
+      - '1434:1433'  # Map cổng 1434 của máy ông vào cổng 1433 của Docker
+    volumes:
+      # Đổi tên lần cuối cho sạch sẽ
+      - sql_final_data:/var/opt/mssql
+
+volumes:
+  sql_final_data:
