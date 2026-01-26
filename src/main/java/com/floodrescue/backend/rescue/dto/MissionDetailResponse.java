@@ -14,7 +14,7 @@ public class MissionDetailResponse {
     private Integer id;
     private Integer requestId;
     private Mission.MissionType missionType;
-    private String status;
+    private Mission.MissionStatus status;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private LocalDateTime createdAt;

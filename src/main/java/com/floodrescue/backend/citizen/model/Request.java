@@ -43,8 +43,9 @@ public class Request {
     @Column(name = "priority", nullable = false)
     private Priority priority;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private RequestStatus status;
 
     @Column(name = "request_supplies")
     private String requestSupplies;
@@ -63,6 +64,14 @@ public class Request {
     public enum Priority {
         CRITICAL,
         HIGH,
+        MEDIUM,
         NORMAL
+    }
+
+    public enum RequestStatus {
+        CREATED,
+        IN_PROGRESS,
+        COMPLETED,
+        CANCELLED
     }
 }

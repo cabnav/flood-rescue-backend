@@ -20,7 +20,7 @@ public class RequestDetailResponse {
     private BigDecimal longitude;
     private String description;
     private Request.Priority priority;
-    private String status;
+    private Request.RequestStatus status;
     private String requestSupplies;
     private String requestMedia;
     private LocalDateTime createdAt;
