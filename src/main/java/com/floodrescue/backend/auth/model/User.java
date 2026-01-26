@@ -41,4 +41,10 @@ public class User {
 
     @Column(name = "avatar_64")
     private String avatar64;
+
+    @Column(name = "failed_attempt", nullable = false)
+    private Integer failedAttempt = 0;
+
+    @Column(name = "lock_time")
+    private LocalDateTime lockTime;
 }
