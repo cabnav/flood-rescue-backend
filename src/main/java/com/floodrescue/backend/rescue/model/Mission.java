@@ -26,8 +26,9 @@ public class Mission {
     @Column(name = "mission_type", nullable = false)
     private MissionType missionType;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private MissionStatus status;
 
     @Column(name = "start_time")
     private LocalDateTime startTime;
@@ -41,5 +42,13 @@ public class Mission {
     public enum MissionType {
         RESCUE,
         RELIEF
+    }
+
+    public enum MissionStatus {
+        PENDING,
+        ASSIGNED,
+        IN_PROGRESS,
+        COMPLETED,
+        CANCELLED
     }
 }

@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface RequestRepository extends JpaRepository<Request, Integer> {
     List<Request> findByUserId(Integer userId);
-    List<Request> findByStatus(String status);
+    List<Request> findByStatus(Request.RequestStatus status);
     List<Request> findByRequestType(Request.RequestType requestType);
+    List<Request> findByUserIdAndStatusIn(Integer userId, List<Request.RequestStatus> statuses);
 }

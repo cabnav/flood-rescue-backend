@@ -1,5 +1,6 @@
 package com.floodrescue.backend.manager.dto;
 
+import com.floodrescue.backend.manager.model.Vehicle;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,5 +15,5 @@ public class VehicleDetailResponse {
     private String model;
     private String licensePlate;
     private Integer capacityPerson;
-    private String status;
+    private Vehicle.VehicleStatus status;
 }

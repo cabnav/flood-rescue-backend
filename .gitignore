@@ -31,3 +31,16 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Temporary/Backup Files ###
+*.backup
+*.log
+
+### Local Documentation & Reports ###
+BUSINESS_RULES_AUDIT_REPORT.md
+BUSINESS_RULES_FINAL_AUDIT_REPORT.md
+PROJECT_STRUCTURE.md
+project_structure.txt
+
+### External Materials ###
+grevo-be-material/
