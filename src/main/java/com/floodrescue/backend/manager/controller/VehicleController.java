@@ -1,9 +1,11 @@
 package com.floodrescue.backend.manager.controller;
 
 import com.floodrescue.backend.common.dto.ApiResponse;
+import com.floodrescue.backend.manager.dto.CreateVehicleRequest;
 import com.floodrescue.backend.manager.dto.VehicleDetailResponse;
 import com.floodrescue.backend.manager.dto.VehicleStatusUpdateRequest;
 import com.floodrescue.backend.manager.service.VehicleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +21,7 @@ public class VehicleController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<VehicleDetailResponse>> createVehicle(
-            @RequestBody com.floodrescue.backend.manager.dto.CreateVehicleRequest request) {
+            @Valid @RequestBody CreateVehicleRequest request) {
         VehicleDetailResponse response = vehicleService.createVehicle(request);
         return ResponseEntity.ok(ApiResponse.success("Vehicle created successfully", response));
     }
@@ -39,7 +41,7 @@ public class VehicleController {
     @PutMapping("/{id}/status")
     public ResponseEntity<ApiResponse<VehicleDetailResponse>> updateVehicleStatus(
             @PathVariable Integer id,
-            @RequestBody VehicleStatusUpdateRequest request) {
+            @Valid @RequestBody VehicleStatusUpdateRequest request) {
         VehicleDetailResponse response = vehicleService.updateVehicleStatus(id, request);
         return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
     }

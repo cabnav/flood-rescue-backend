@@ -4,6 +4,7 @@ import com.floodrescue.backend.admin.dto.UserDetailResponse;
 import com.floodrescue.backend.admin.dto.UserStatusUpdateRequest;
 import com.floodrescue.backend.admin.service.UserManagementService;
 import com.floodrescue.backend.common.dto.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,7 +37,7 @@ public class UserManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDetailResponse>> updateUserStatus(
             @PathVariable Integer id,
-            @RequestBody UserStatusUpdateRequest request) {
+            @Valid @RequestBody UserStatusUpdateRequest request) {
         UserDetailResponse response = userManagementService.updateUserStatus(id, request);
         return ResponseEntity.ok(ApiResponse.success("User status updated successfully", response));
     }

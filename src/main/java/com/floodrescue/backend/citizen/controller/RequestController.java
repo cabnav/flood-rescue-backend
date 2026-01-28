@@ -4,6 +4,7 @@ import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
 import com.floodrescue.backend.citizen.service.RequestService;
 import com.floodrescue.backend.common.dto.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,7 +21,7 @@ public class RequestController {
 
     @PostMapping
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRequest(@RequestBody CreateRequestRequest request) {
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRequest(@Valid @RequestBody CreateRequestRequest request) {
         RequestDetailResponse response = requestService.createRequest(request);
         return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));
     }

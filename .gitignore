@@ -14,7 +14,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -41,6 +41,7 @@ BUSINESS_RULES_AUDIT_REPORT.md
 BUSINESS_RULES_FINAL_AUDIT_REPORT.md
 PROJECT_STRUCTURE.md
 project_structure.txt
+API_INTEGRATION_GUIDE.md
 
 ### External Materials ###
 grevo-be-material/

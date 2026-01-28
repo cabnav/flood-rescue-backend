@@ -56,7 +56,7 @@ public class RequestServiceImpl implements RequestService {
         
         // Default values
         newRequest.setStatus(Request.RequestStatus.CREATED);
-        newRequest.setPriority(Request.Priority.MEDIUM);
+        newRequest.setPriority(Request.Priority.NORMAL);
         newRequest.setRequestType(Request.RequestType.RESCUE);
 
         // 4. Save latitude, longitude, and description from request

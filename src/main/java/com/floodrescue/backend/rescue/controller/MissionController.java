@@ -5,6 +5,7 @@ import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
 import com.floodrescue.backend.rescue.service.MissionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +40,7 @@ public class MissionController {
     @PutMapping("/{id}/assign-team")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> assignMission(
             @PathVariable Integer id,
-            @RequestBody AssignMissionRequest request) {
+            @Valid @RequestBody AssignMissionRequest request) {
         MissionDetailResponse response = missionService.assignMission(id, request);
         return ResponseEntity.ok(ApiResponse.success("Team assigned successfully", response));
     }
@@ -47,7 +48,7 @@ public class MissionController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> updateMissionStatus(
             @PathVariable Integer id,
-            @RequestBody MissionStatusUpdateRequest request) {
+            @Valid @RequestBody MissionStatusUpdateRequest request) {
         MissionDetailResponse response = missionService.updateMissionStatus(id, request);
         return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
     }
