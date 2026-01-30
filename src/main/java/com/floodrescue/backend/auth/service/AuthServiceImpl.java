@@ -17,6 +17,7 @@ import com.floodrescue.backend.common.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -62,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         // 5. Gán Role và set isActive
-        // Business Rule 1.1: CITIZEN auto-active, RESCUE_TEAM and RESCUE_COORDINATOR pending admin approval
+            // Business Rule 1.1: CITIZEN auto-active, RESCUE_TEAM and RESCUE_COORDINATOR pending admin approval
         Boolean isActive;
         String roleName = request.getRole().toUpperCase();
         if ("CITIZEN".equals(roleName)) {
@@ -117,12 +118,22 @@ public class AuthServiceImpl implements AuthService {
                 // Tài khoản vẫn còn bị khóa
                 throw new UnauthorizedAccessException("Account is locked. Please try again later.");
             } else {
-                // Hết hạn khóa -> Mở khóa tự động
-                user.setFailedAttempt(0);
-                user.setLockTime(null);
-                user.setIsActive(true);
-                userRepository.save(user);
+                // Hết hạn khóa do đăng nhập sai -> Mở khóa tự động (không ảnh hưởng pending approval)
+                // Chỉ auto-reactivate nếu đây đúng là lock do failed attempts.
+                if (user.getFailedAttempt() != null && user.getFailedAttempt() >= MAX_FAILED_ATTEMPTS) {
+                    user.setFailedAttempt(0);
+                    user.setLockTime(null);
+                    user.setIsActive(true);
+                    userRepository.save(user);
+                } else {
+                    throw new UnauthorizedAccessException("Account is locked. Please contact admin.");
+                }
             }
+        }
+
+        // Nếu tài khoản đang bị inactive (pending approval / blocked) thì không cho login
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new UnauthorizedAccessException("Account is not active. Please contact admin.");
         }
 
         try {
@@ -144,9 +155,14 @@ public class AuthServiceImpl implements AuthService {
                     .findFirst()
                     .map(auth -> auth.getAuthority())
                     .orElse("");
+            // Trả role cho client dạng "ADMIN/CITIZEN/..." thay vì "ROLE_ADMIN"
+            if (role.startsWith("ROLE_")) {
+                role = role.substring("ROLE_".length());
+            }
 
             // 6. Generate JWT Token
-            String token = jwtUtils.generateToken(userDetails.getUsername(), role);
+            // role claim (nếu dùng) sẽ là ROLE_*
+            String token = jwtUtils.generateToken(userDetails.getUsername(), "ROLE_" + role);
 
             // 7. Trả về LoginResponse
             LoginResponse response = new LoginResponse();
@@ -159,6 +175,8 @@ public class AuthServiceImpl implements AuthService {
 
             return response;
 
+        } catch (DisabledException e) {
+            throw new UnauthorizedAccessException("Account is not active. Please contact admin.");
         } catch (BadCredentialsException e) {
             // 8. Nếu sai mật khẩu: Tăng failedAttempt
             int newFailedAttempt = (user.getFailedAttempt() == null ? 0 : user.getFailedAttempt()) + 1;

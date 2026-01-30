@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collection;
 import java.util.List;
 
 @RestController
@@ -22,6 +23,14 @@ public class UserManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<UserDetailResponse>>> getAllUsers() {
         List<UserDetailResponse> responses = userManagementService.getAllUsers();
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<UserDetailResponse>>> getPendingUsers(
+            @RequestParam(name = "roles", required = false) Collection<String> roles) {
+        List<UserDetailResponse> responses = userManagementService.getPendingUsers(roles);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
