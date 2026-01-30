@@ -46,6 +46,12 @@ public class JwtUtils {
         return extractClaim(token, Claims::getSubject);
     }
 
+    /** Lấy claim "role" từ JWT (ví dụ ROLE_ADMIN, ROLE_CITIZEN). */
+    public String extractRole(String token) {
+        Object role = extractAllClaims(token).get("role");
+        return role != null ? role.toString() : null;
+    }
+
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }

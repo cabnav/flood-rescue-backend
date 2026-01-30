@@ -19,7 +19,7 @@ public class RequestController {
     private final RequestService requestService;
 
     @PostMapping
-    @PreAuthorize("hasRole('CITIZEN')")
+    //@PreAuthorize("hasRole('CITIZEN')")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> createRequest(@RequestBody CreateRequestRequest request) {
         RequestDetailResponse response = requestService.createRequest(request);
         return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));

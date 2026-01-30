@@ -2,6 +2,7 @@ package com.floodrescue.backend.auth.service;
 
 import com.floodrescue.backend.auth.model.User;
 import com.floodrescue.backend.auth.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -36,9 +37,15 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .build();
     }
 
+    /**
+     * Trả về authority có prefix ROLE_ để khớp với hasRole('ADMIN') / hasAnyRole(...).
+     * Spring Security hasRole("ADMIN") tìm authority "ROLE_ADMIN"; nếu lưu "ADMIN" sẽ 403.
+     */
     private Collection<? extends GrantedAuthority> getAuthorities(User user) {
         if (user.getRole() != null && user.getRole().getName() != null) {
-            return Collections.singletonList(new SimpleGrantedAuthority(user.getRole().getName()));
+            String roleName = user.getRole().getName();
+            String authority = roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
+            return Collections.singletonList(new SimpleGrantedAuthority(authority));
         }
         return Collections.emptyList();
     }
