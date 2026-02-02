@@ -42,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
     // Constants for account locking
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final int LOCK_TIME_DURATION_MINUTES = 30;
+    private static final String DEFAULT_REGISTER_ROLE = "CITIZEN";
 
     @Override
     public RegisterResponse register(RegisterRequest request) {
@@ -55,25 +56,16 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Phone number already exists");
         }
 
-        // 3. Tìm Role từ database
-        Role role = roleRepository.findByName(request.getRole())
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + request.getRole()));
+        // 3. Role đăng ký luôn mặc định là CITIZEN (không cho client tự truyền role)
+        Role role = roleRepository.findByName(DEFAULT_REGISTER_ROLE)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + DEFAULT_REGISTER_ROLE));
 
         // 4. Mã hóa password bằng BCryptPasswordEncoder
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         // 5. Gán Role và set isActive
-            // Business Rule 1.1: CITIZEN auto-active, RESCUE_TEAM and RESCUE_COORDINATOR pending admin approval
-        Boolean isActive;
-        String roleName = request.getRole().toUpperCase();
-        if ("CITIZEN".equals(roleName)) {
-            isActive = true; // Citizen auto-active
-        } else if ("RESCUE_TEAM".equals(roleName) || "RESCUE_COORDINATOR".equals(roleName)) {
-            isActive = false; // RESCUE_TEAM and RESCUE_COORDINATOR pending admin approval
-        } else {
-            // Default: Other roles (e.g., ADMIN) also pending approval for security
-            isActive = false;
-        }
+        // Business Rule 1.1: CITIZEN auto-active
+        Boolean isActive = true;
 
         // 6. Tạo User mới
         User user = new User();
@@ -132,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Nếu tài khoản đang bị inactive (pending approval / blocked) thì không cho login
-        if (Boolean.FALSE.equals(user.getIsActive())) {
+            if (Boolean.FALSE.equals(user.getIsActive())) {
             throw new UnauthorizedAccessException("Account is not active. Please contact admin.");
         }
 
