@@ -22,6 +22,7 @@ public class MissionController {
     private final MissionService missionService;
 
     @PostMapping("/request/{requestId}")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> createMission(@PathVariable Integer requestId) {
         MissionDetailResponse response = missionService.createMission(requestId);
         return ResponseEntity.ok(ApiResponse.success("Mission created successfully", response));
@@ -41,12 +42,14 @@ public class MissionController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','ADMIN')")
     public ResponseEntity<ApiResponse<List<MissionDetailResponse>>> getAllMissions() {
         List<MissionDetailResponse> responses = missionService.getAllMissions();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
     @PutMapping("/{id}/assign-team")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> assignMission(
             @PathVariable Integer id,
             @RequestBody AssignMissionRequest request) {
