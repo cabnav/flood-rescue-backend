@@ -3,6 +3,7 @@ package com.floodrescue.backend.admin.controller;
 import com.floodrescue.backend.admin.dto.UserDetailResponse;
 import com.floodrescue.backend.admin.dto.UserStatusUpdateRequest;
 import com.floodrescue.backend.admin.service.UserManagementService;
+import com.floodrescue.backend.common.annotation.RequireRole;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @RequiredArgsConstructor
+@RequireRole({"ADMIN"})
 public class UserManagementController {
 
     private final UserManagementService userManagementService;
