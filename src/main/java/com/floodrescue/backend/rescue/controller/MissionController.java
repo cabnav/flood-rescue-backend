@@ -3,8 +3,11 @@ package com.floodrescue.backend.rescue.controller;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
+import com.floodrescue.backend.rescue.dto.MissionReportRequest;
+import com.floodrescue.backend.rescue.dto.MissionReportResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
 import com.floodrescue.backend.rescue.service.MissionService;
+import com.floodrescue.backend.rescue.service.MissionReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +21,7 @@ import java.util.List;
 public class MissionController {
 
     private final MissionService missionService;
+    private final MissionReportService missionReportService;
 
     @PostMapping("/request/{requestId}")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> createMission(@PathVariable Integer requestId) {
@@ -51,5 +55,14 @@ public class MissionController {
             @Valid @RequestBody MissionStatusUpdateRequest request) {
         MissionDetailResponse response = missionService.updateMissionStatus(id, request);
         return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
+    }
+
+    @PostMapping("/{id}/report")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('RESCUE_TEAM')")
+    public ResponseEntity<ApiResponse<MissionReportResponse>> createMissionReport(
+            @PathVariable Integer id,
+            @Valid @RequestBody MissionReportRequest request) {
+        MissionReportResponse response = missionReportService.createReport(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Báo cáo nhiệm vụ đã được ghi nhận thành công", response));
     }
 }

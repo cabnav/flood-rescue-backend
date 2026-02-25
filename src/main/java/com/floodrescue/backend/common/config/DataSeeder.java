@@ -6,10 +6,20 @@ import com.floodrescue.backend.auth.repository.RoleRepository;
 import com.floodrescue.backend.auth.repository.UserRepository;
 import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
+import com.floodrescue.backend.manager.model.Inventory;
+import com.floodrescue.backend.manager.model.Item;
+import com.floodrescue.backend.manager.model.ReliefDistribution;
 import com.floodrescue.backend.manager.model.Vehicle;
 import com.floodrescue.backend.manager.model.Warehouse;
+import com.floodrescue.backend.manager.repository.InventoryRepository;
+import com.floodrescue.backend.manager.repository.ItemRepository;
+import com.floodrescue.backend.manager.repository.ReliefDistributionRepository;
 import com.floodrescue.backend.manager.repository.VehicleRepository;
 import com.floodrescue.backend.manager.repository.WarehouseRepository;
+import com.floodrescue.backend.rescue.model.Mission;
+import com.floodrescue.backend.rescue.model.Report;
+import com.floodrescue.backend.rescue.repository.MissionRepository;
+import com.floodrescue.backend.rescue.repository.ReportRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -29,6 +39,11 @@ public class DataSeeder implements CommandLineRunner {
     private final RequestRepository requestRepository;
     private final VehicleRepository vehicleRepository;
     private final WarehouseRepository warehouseRepository;
+    private final InventoryRepository inventoryRepository;
+    private final ItemRepository itemRepository;
+    private final ReliefDistributionRepository reliefDistributionRepository;
+    private final MissionRepository missionRepository;
+    private final ReportRepository reportRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(RoleRepository roleRepository,
@@ -36,12 +51,22 @@ public class DataSeeder implements CommandLineRunner {
                       RequestRepository requestRepository,
                       VehicleRepository vehicleRepository,
                       WarehouseRepository warehouseRepository,
+                      InventoryRepository inventoryRepository,
+                      ItemRepository itemRepository,
+                      ReliefDistributionRepository reliefDistributionRepository,
+                      MissionRepository missionRepository,
+                      ReportRepository reportRepository,
                       PasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.requestRepository = requestRepository;
         this.vehicleRepository = vehicleRepository;
         this.warehouseRepository = warehouseRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.itemRepository = itemRepository;
+        this.reliefDistributionRepository = reliefDistributionRepository;
+        this.missionRepository = missionRepository;
+        this.reportRepository = reportRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -52,6 +77,9 @@ public class DataSeeder implements CommandLineRunner {
         seedRequests();
         seedVehicles();
         seedWarehouses();
+        seedMissions();
+        seedInventoryAndReliefDistribution();
+        seedMissionReport();
     }
 
     private void seedRoles() {
@@ -160,7 +188,7 @@ public class DataSeeder implements CommandLineRunner {
         Request request3 = new Request();
         request3.setUser(citizen);
         request3.setPhone(citizen.getPhoneNumber());
-        request3.setRequestType(Request.RequestType.RELIEF);
+        request3.setRequestType(Request.RequestType.FOOD);
         request3.setLatitude(new BigDecimal("10.823099"));
         request3.setLongitude(new BigDecimal("106.629662"));
         request3.setDescription("Community center needs food and water supplies.");
@@ -169,6 +197,16 @@ public class DataSeeder implements CommandLineRunner {
         request3.setRequestSupplies("Bottled water, instant noodles");
         request3.setRequestMedia("No media provided");
         request3.setCreatedAt(LocalDateTime.now().minusMinutes(30));
+
+        // Sample classified request
+        User admin = userRepository.findByEmail("admin@floodrescue.com").orElse(null);
+        if (admin != null) {
+            request3.setClassifiedAt(LocalDateTime.now().minusMinutes(20));
+            request3.setClassifiedBy(admin);
+            request3.setPriority(Request.Priority.LOW);
+            request3.setRequestType(Request.RequestType.OTHER);
+        }
+
         requestRepository.save(request3);
     }
 
@@ -235,6 +273,99 @@ public class DataSeeder implements CommandLineRunner {
         warehouse3.setSupplyId("SUP-WATER-001");
         warehouse3.setStatus("INACTIVE");
         warehouseRepository.save(warehouse3);
+    }
+
+    private void seedMissions() {
+        if (missionRepository.count() > 0) {
+            return;
+        }
+
+        Request baseRequest = requestRepository.findAll().stream().findFirst().orElse(null);
+        if (baseRequest == null) {
+            return;
+        }
+
+        Mission mission = new Mission();
+        mission.setRequest(baseRequest);
+        mission.setMissionType(Mission.MissionType.RESCUE);
+        mission.setStatus(Mission.MissionStatus.IN_PROGRESS);
+        mission.setStartTime(LocalDateTime.now().minusMinutes(30));
+        mission.setCreatedAt(LocalDateTime.now().minusMinutes(40));
+
+        missionRepository.save(mission);
+    }
+
+    private void seedInventoryAndReliefDistribution() {
+        if (reliefDistributionRepository.count() > 0) {
+            return;
+        }
+
+        Warehouse warehouse = warehouseRepository.findAll().stream().findFirst().orElse(null);
+        if (warehouse == null) {
+            return;
+        }
+
+        Mission mission = missionRepository.findAll().stream().findFirst().orElse(null);
+        if (mission == null) {
+            return;
+        }
+
+        // Create sample item and inventory
+        Item item = new Item();
+        item.setName("Gạo cứu trợ");
+        item.setItemType(Item.ItemType.FOOD);
+        item.setCapacity("10kg");
+        item.setStatus("ACTIVE");
+        Item savedItem = itemRepository.save(item);
+
+        Inventory inventory = new Inventory();
+        inventory.setItem(savedItem);
+        inventory.setWarehouse(warehouse);
+        inventory.setQuantity(100);
+        inventory.setLastUpdate(LocalDateTime.now());
+        Inventory savedInventory = inventoryRepository.save(inventory);
+
+        User admin = userRepository.findByEmail("admin@floodrescue.com").orElse(null);
+
+        ReliefDistribution distribution = new ReliefDistribution();
+        distribution.setMission(mission);
+        distribution.setInventory(savedInventory);
+        distribution.setQuantityDistributed(10);
+        distribution.setHouseholdIdentifier("012345678901");
+        distribution.setRecordedBy(admin);
+        distribution.setDistributedAt(LocalDateTime.now().minusMinutes(10));
+
+        reliefDistributionRepository.save(distribution);
+    }
+
+    private void seedMissionReport() {
+        if (reportRepository.count() > 0) {
+            return;
+        }
+
+        Mission mission = missionRepository.findAll().stream().findFirst().orElse(null);
+        if (mission == null) {
+            return;
+        }
+
+        User teamUser = userRepository.findByEmail("team@rescue.com").orElse(null);
+        if (teamUser == null) {
+            return;
+        }
+
+        Report report = new Report();
+        report.setMission(mission);
+        report.setUser(teamUser);
+        report.setPeopleRescued(5);
+        report.setSummary("Đã giải cứu 5 người khỏi khu vực ngập lụt.");
+        report.setObstacles("Đường ngập sâu, di chuyển khó khăn.");
+        report.setCreatedAt(LocalDateTime.now().minusMinutes(5));
+
+        reportRepository.save(report);
+
+        mission.setStatus(Mission.MissionStatus.COMPLETED);
+        mission.setEndTime(LocalDateTime.now());
+        missionRepository.save(mission);
     }
 }
 

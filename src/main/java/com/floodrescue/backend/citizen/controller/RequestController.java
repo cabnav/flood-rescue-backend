@@ -1,5 +1,6 @@
 package com.floodrescue.backend.citizen.controller;
 
+import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
 import com.floodrescue.backend.citizen.service.RequestService;
@@ -54,5 +55,14 @@ public class RequestController {
             @RequestBody String status) {
         RequestDetailResponse response = requestService.updateRequestStatus(id, status);
         return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
+    }
+
+    @PatchMapping("/{id}/classify")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> classifyRequest(
+            @PathVariable Integer id,
+            @Valid @RequestBody ClassifyRequestRequest request) {
+        RequestDetailResponse response = requestService.classifyRequest(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Phân loại yêu cầu thành công", response));
     }
 }
