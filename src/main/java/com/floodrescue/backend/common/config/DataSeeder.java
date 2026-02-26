@@ -192,7 +192,7 @@ public class DataSeeder implements CommandLineRunner {
         request3.setLatitude(new BigDecimal("10.823099"));
         request3.setLongitude(new BigDecimal("106.629662"));
         request3.setDescription("Community center needs food and water supplies.");
-        request3.setPriority(Request.Priority.NORMAL);
+        request3.setPriority(Request.Priority.MEDIUM);
         request3.setStatus(Request.RequestStatus.CREATED);
         request3.setRequestSupplies("Bottled water, instant noodles");
         request3.setRequestMedia("No media provided");

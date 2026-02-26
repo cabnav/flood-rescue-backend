@@ -74,7 +74,7 @@ public class Request {
     public enum Priority {
         CRITICAL,
         HIGH,
-        NORMAL,
+        MEDIUM,
         LOW
     }
 
