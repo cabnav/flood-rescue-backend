@@ -58,7 +58,7 @@ public class RequestController {
     }
 
     @PatchMapping("/{id}/classify")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> classifyRequest(
             @PathVariable Integer id,
             @Valid @RequestBody ClassifyRequestRequest request) {

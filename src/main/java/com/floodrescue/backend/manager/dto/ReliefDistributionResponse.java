@@ -17,6 +17,7 @@ public class ReliefDistributionResponse {
     private String itemType;
     private Integer quantityDistributed;
     private String householdIdentifier;
+    private Boolean isConfirmed;
     private Integer recordedById;
     private String recordedByName;
     private LocalDateTime distributedAt;

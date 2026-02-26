@@ -39,4 +39,7 @@ public class ReliefDistribution {
 
     @Column(name = "distributed_at", nullable = false)
     private LocalDateTime distributedAt = LocalDateTime.now();
+
+    @Column(name = "is_confirmed", nullable = false)
+    private Boolean isConfirmed = false;
 }

@@ -24,5 +24,8 @@ public class ReliefDistributionRequest {
 
     @NotBlank(message = "CCCD/Định danh hộ gia đình không được để trống")
     private String householdIdentifier;
+
+    /** For confirmation-of-receipt flow; defaults to false when creating. */
+    private Boolean isConfirmed;
 }
 

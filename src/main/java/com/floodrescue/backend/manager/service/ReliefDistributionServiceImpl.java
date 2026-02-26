@@ -63,6 +63,7 @@ public class ReliefDistributionServiceImpl implements ReliefDistributionService 
         distribution.setInventory(inventory);
         distribution.setQuantityDistributed(request.getQuantity());
         distribution.setHouseholdIdentifier(request.getHouseholdIdentifier());
+        distribution.setIsConfirmed(request.getIsConfirmed() != null ? request.getIsConfirmed() : false);
         distribution.setRecordedBy(user);
         distribution.setDistributedAt(LocalDateTime.now());
 
@@ -84,6 +85,7 @@ public class ReliefDistributionServiceImpl implements ReliefDistributionService 
                 itemType,
                 distribution.getQuantityDistributed(),
                 distribution.getHouseholdIdentifier(),
+                distribution.getIsConfirmed() != null ? distribution.getIsConfirmed() : false,
                 recordedBy != null ? recordedBy.getId() : null,
                 recordedBy != null ? recordedBy.getFullName() : null,
                 distribution.getDistributedAt()

@@ -332,6 +332,7 @@ public class DataSeeder implements CommandLineRunner {
         distribution.setInventory(savedInventory);
         distribution.setQuantityDistributed(10);
         distribution.setHouseholdIdentifier("012345678901");
+        distribution.setIsConfirmed(false);
         distribution.setRecordedBy(admin);
         distribution.setDistributedAt(LocalDateTime.now().minusMinutes(10));
 
