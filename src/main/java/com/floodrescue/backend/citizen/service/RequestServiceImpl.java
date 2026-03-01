@@ -8,10 +8,13 @@ import com.floodrescue.backend.auth.model.User;
 import com.floodrescue.backend.auth.repository.UserRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
+import com.floodrescue.backend.admin.model.Notification;
+import com.floodrescue.backend.admin.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +26,7 @@ public class RequestServiceImpl implements RequestService {
 
     private final RequestRepository requestRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public RequestDetailResponse createRequest(CreateRequestRequest request) {
@@ -93,28 +97,36 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RequestDetailResponse getRequestById(Integer id) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
-        // TODO: Map to response DTO
-        return null;
+        return mapToResponse(request);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RequestDetailResponse> getAllRequests() {
-        // TODO: Implement get all requests logic
-        return null;
+        return requestRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RequestDetailResponse> getRequestsByUserId(Integer userId) {
-        // TODO: Implement get requests by user logic
-        return null;
+        return requestRepository.findByUserId(userId)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public RequestDetailResponse updateRequestStatus(Integer id, String status) {
-        // TODO: Implement update status logic
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
         return null;
     }
 }

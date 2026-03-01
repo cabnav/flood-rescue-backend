@@ -58,14 +58,16 @@ public class Request {
 
     public enum RequestType {
         RESCUE,
-        RELIEF
+        RELIEF,
+        OTHER
     }
 
     public enum Priority {
         CRITICAL,
         HIGH,
         MEDIUM,
-        NORMAL
+        NORMAL,
+        LOW
     }
 
     public enum RequestStatus {

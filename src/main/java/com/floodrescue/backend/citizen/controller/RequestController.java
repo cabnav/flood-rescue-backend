@@ -19,7 +19,7 @@ public class RequestController {
     private final RequestService requestService;
 
     @PostMapping
-    //@PreAuthorize("hasRole('CITIZEN')")
+    @PreAuthorize("hasRole('CITIZEN')")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> createRequest(@RequestBody CreateRequestRequest request) {
         RequestDetailResponse response = requestService.createRequest(request);
         return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));
@@ -47,11 +47,11 @@ public class RequestController {
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM', 'ADMIN')")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> updateRequestStatus(
             @PathVariable Integer id,
             @RequestBody String status) {
         RequestDetailResponse response = requestService.updateRequestStatus(id, status);
-        return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
