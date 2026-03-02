@@ -66,7 +66,6 @@ public class RequestServiceImpl implements RequestService {
         
         // Optional fields
         newRequest.setRequestSupplies(request.getRequestSupplies());
-        newRequest.setRequestMedia(request.getRequestMedia());
 
         // 5. Save to database
         Request savedRequest = requestRepository.save(newRequest);
@@ -87,7 +86,6 @@ public class RequestServiceImpl implements RequestService {
         response.setPriority(request.getPriority());
         response.setStatus(request.getStatus());
         response.setRequestSupplies(request.getRequestSupplies());
-        response.setRequestMedia(request.getRequestMedia());
         response.setCreatedAt(request.getCreatedAt());
         return response;
     }

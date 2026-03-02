@@ -22,6 +22,5 @@ public class RequestDetailResponse {
     private Request.Priority priority;
     private Request.RequestStatus status;
     private String requestSupplies;
-    private String requestMedia;
     private LocalDateTime createdAt;
 }

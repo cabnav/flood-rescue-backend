@@ -19,5 +19,4 @@ public class CreateRequestRequest {
     private String description;
     private Request.Priority priority;
     private String requestSupplies;
-    private String requestMedia;
 }

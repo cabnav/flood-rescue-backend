@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "requests")
@@ -50,9 +51,6 @@ public class Request {
     @Column(name = "request_supplies")
     private String requestSupplies;
 
-    @Column(name = "request_media")
-    private String requestMedia;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -74,4 +72,8 @@ public class Request {
         COMPLETED,
         CANCELLED
     }
+    @OneToMany(mappedBy = "request",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private List<RequestMedia> medias;
 }
