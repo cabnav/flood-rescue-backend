@@ -5,8 +5,12 @@ import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
+import com.floodrescue.backend.rescue.dto.MissionReportRequest;
+import com.floodrescue.backend.rescue.dto.MissionReportResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
 import com.floodrescue.backend.rescue.service.MissionService;
+import com.floodrescue.backend.rescue.service.MissionReportService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +24,7 @@ import java.util.List;
 public class MissionController {
 
     private final MissionService missionService;
+    private final MissionReportService missionReportService;
 
     @PostMapping("/request/{requestId}")
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
@@ -52,7 +57,7 @@ public class MissionController {
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> assignMission(
             @PathVariable Integer id,
-            @RequestBody AssignMissionRequest request) {
+            @Valid @RequestBody AssignMissionRequest request) {
         MissionDetailResponse response = missionService.assignMission(id, request);
         return ResponseEntity.ok(ApiResponse.success("Team assigned successfully", response));
     }
@@ -61,7 +66,7 @@ public class MissionController {
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> updateMissionStatus(
             @PathVariable Integer id,
-            @RequestBody MissionStatusUpdateRequest request) {
+            @Valid @RequestBody MissionStatusUpdateRequest request) {
         MissionDetailResponse response = missionService.updateMissionStatus(id, request);
         return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
     }
@@ -74,5 +79,14 @@ public class MissionController {
     ) {
         MissionDetailResponse response = missionService.respondToMissionAssignment(assignmentId, request);
         return ResponseEntity.ok(ApiResponse.success("Assignment response submitted successfully", response));
+    }
+
+    @PostMapping("/{id}/report")
+    @PreAuthorize("hasRole('RESCUE_TEAM')")
+    public ResponseEntity<ApiResponse<MissionReportResponse>> createMissionReport(
+            @PathVariable Integer id,
+            @Valid @RequestBody MissionReportRequest request) {
+        MissionReportResponse response = missionReportService.createReport(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Báo cáo nhiệm vụ đã được ghi nhận thành công", response));
     }
 }

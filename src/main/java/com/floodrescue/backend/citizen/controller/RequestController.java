@@ -1,9 +1,11 @@
 package com.floodrescue.backend.citizen.controller;
 
+import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
 import com.floodrescue.backend.citizen.service.RequestService;
 import com.floodrescue.backend.common.dto.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,7 +22,7 @@ public class RequestController {
 
     @PostMapping
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRequest(@RequestBody CreateRequestRequest request) {
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRequest(@Valid @RequestBody CreateRequestRequest request) {
         RequestDetailResponse response = requestService.createRequest(request);
         return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));
     }
@@ -53,5 +55,14 @@ public class RequestController {
             @RequestBody String status) {
         RequestDetailResponse response = requestService.updateRequestStatus(id, status);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PatchMapping("/{id}/classify")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> classifyRequest(
+            @PathVariable Integer id,
+            @Valid @RequestBody ClassifyRequestRequest request) {
+        RequestDetailResponse response = requestService.classifyRequest(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Phân loại yêu cầu thành công", response));
     }
 }

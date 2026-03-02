@@ -56,8 +56,18 @@ public class Request {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "classified_at")
+    private LocalDateTime classifiedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classified_by_id")
+    private User classifiedBy;
+
     public enum RequestType {
         RESCUE,
+        MEDICAL,
+        FOOD,
+        EVACUATION,
         RELIEF,
         OTHER
     }
@@ -66,7 +76,6 @@ public class Request {
         CRITICAL,
         HIGH,
         MEDIUM,
-        NORMAL,
         LOW
     }
 
