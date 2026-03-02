@@ -26,6 +26,9 @@ public class Report {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "people_rescued", nullable = false)
+    private Integer peopleRescued = 0;
+
     @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
 

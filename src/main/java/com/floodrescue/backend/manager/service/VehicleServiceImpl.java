@@ -1,7 +1,8 @@
 package com.floodrescue.backend.manager.service;
 
-import com.floodrescue.backend.manager.dto.VehicleDetailResponse;
-import com.floodrescue.backend.manager.dto.VehicleStatusUpdateRequest;
+import com.floodrescue.backend.common.exception.BadRequestException;
+import com.floodrescue.backend.manager.dto.VehicleRequest;
+import com.floodrescue.backend.manager.dto.VehicleResponse;
 import com.floodrescue.backend.manager.model.Vehicle;
 import com.floodrescue.backend.manager.repository.VehicleRepository;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
@@ -17,28 +18,94 @@ public class VehicleServiceImpl implements VehicleService {
     private final VehicleRepository vehicleRepository;
 
     @Override
-    public VehicleDetailResponse createVehicle(com.floodrescue.backend.manager.dto.CreateVehicleRequest request) {
-        // TODO: Implement create vehicle logic
-        return null;
+    public VehicleResponse createVehicle(VehicleRequest request) {
+        Vehicle vehicle = new Vehicle();
+        // Depot handling can be added later when depot management is implemented
+        vehicle.setDepot(null);
+        vehicle.setType(request.getType());
+        vehicle.setModel(request.getModel());
+        vehicle.setLicensePlate(request.getLicensePlate());
+        vehicle.setCapacityPerson(request.getCapacityPerson());
+        vehicle.setStatus(request.getStatus());
+
+        Vehicle saved = vehicleRepository.save(vehicle);
+        return mapToResponse(saved);
     }
 
     @Override
-    public VehicleDetailResponse getVehicleById(Integer id) {
+    public VehicleResponse getVehicleById(Integer id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
-        // TODO: Map to response DTO
-        return null;
+        return mapToResponse(vehicle);
     }
 
     @Override
-    public List<VehicleDetailResponse> getAllVehicles() {
-        // TODO: Implement get all vehicles logic
-        return null;
+    public List<VehicleResponse> getAllVehicles() {
+        return vehicleRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     @Override
-    public VehicleDetailResponse updateVehicleStatus(Integer id, VehicleStatusUpdateRequest request) {
-        // TODO: Implement update status logic
-        return null;
+    public VehicleResponse updateVehicle(Integer id, VehicleRequest request) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        // Business rule: if vehicle is IN_USE, core properties cannot be modified
+        if (vehicle.getStatus() == Vehicle.VehicleStatus.IN_USE) {
+            throw new BadRequestException("Vehicle is currently IN_USE and cannot be modified");
+        }
+
+        vehicle.setType(request.getType());
+        vehicle.setModel(request.getModel());
+        vehicle.setLicensePlate(request.getLicensePlate());
+        vehicle.setCapacityPerson(request.getCapacityPerson());
+        vehicle.setStatus(request.getStatus());
+
+        Vehicle updated = vehicleRepository.save(vehicle);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public void deleteVehicle(Integer id) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        // Business rule: do not allow deleting vehicles that are IN_USE
+        if (vehicle.getStatus() == Vehicle.VehicleStatus.IN_USE) {
+            throw new BadRequestException("Vehicle is currently IN_USE and cannot be deleted");
+        }
+
+        vehicleRepository.delete(vehicle);
+    }
+
+    @Override
+    public VehicleResponse updateStatus(Integer id, Vehicle.VehicleStatus newStatus) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        vehicle.setStatus(newStatus);
+        Vehicle updated = vehicleRepository.save(vehicle);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public List<VehicleResponse> getVehiclesByStatus(Vehicle.VehicleStatus status) {
+        return vehicleRepository.findByStatus(status).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    private VehicleResponse mapToResponse(Vehicle vehicle) {
+        Integer depotId = vehicle.getDepot() != null ? vehicle.getDepot().getDepotId() : null;
+        return new VehicleResponse(
+                vehicle.getVehicleId(),
+                depotId,
+                vehicle.getType(),
+                vehicle.getModel(),
+                vehicle.getLicensePlate(),
+                vehicle.getCapacityPerson(),
+                vehicle.getStatus()
+        );
     }
 }
