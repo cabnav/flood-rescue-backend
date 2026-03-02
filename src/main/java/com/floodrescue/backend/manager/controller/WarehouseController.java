@@ -3,6 +3,7 @@ package com.floodrescue.backend.manager.controller;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import com.floodrescue.backend.manager.dto.WarehouseDetailResponse;
 import com.floodrescue.backend.manager.dto.WarehouseInventoryResponse;
+import com.floodrescue.backend.manager.dto.InventoryMovementRequest;
 import com.floodrescue.backend.manager.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -40,5 +41,21 @@ public class WarehouseController {
     public ResponseEntity<ApiResponse<WarehouseInventoryResponse>> getWarehouseInventory(@PathVariable Integer id) {
         WarehouseInventoryResponse response = warehouseService.getWarehouseInventory(id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{id}/inventory/in")
+    public ResponseEntity<ApiResponse<WarehouseInventoryResponse>> importInventory(
+            @PathVariable Integer id,
+            @RequestBody InventoryMovementRequest request) {
+        WarehouseInventoryResponse response = warehouseService.importInventory(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Nhập kho thành công", response));
+    }
+
+    @PostMapping("/{id}/inventory/out")
+    public ResponseEntity<ApiResponse<WarehouseInventoryResponse>> exportInventory(
+            @PathVariable Integer id,
+            @RequestBody InventoryMovementRequest request) {
+        WarehouseInventoryResponse response = warehouseService.exportInventory(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Xuất kho thành công", response));
     }
 }
