@@ -31,7 +31,7 @@ public class RequestServiceImpl implements RequestService {
     private final NotificationRepository notificationRepository;
 
     @Override
-    public RequestDetailResponse createRequest(CreateRequestRequest request) {
+    public RequestDetailResponse createRescue(CreateRequestRequest request) {
         // 1. Get UserID from SecurityContextHolder
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
@@ -60,10 +60,59 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setUser(user);
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
-        // Default values (priority: dùng từ request nếu có, không thì HIGH để tránh lỗi DB constraint requests_priority_check)
         newRequest.setStatus(Request.RequestStatus.CREATED);
         newRequest.setPriority(request.getPriority() != null ? request.getPriority() : Request.Priority.HIGH);
         newRequest.setRequestType(Request.RequestType.RESCUE);
+
+        // 4. Save latitude, longitude, and description from request
+        newRequest.setLatitude(request.getLatitude());
+        newRequest.setLongitude(request.getLongitude());
+        newRequest.setDescription(request.getDescription());
+
+        // Optional fields
+        newRequest.setRequestSupplies(request.getRequestSupplies());
+        newRequest.setRequestMedia(request.getRequestMedia());
+
+        // 5. Save to database
+        Request savedRequest = requestRepository.save(newRequest);
+
+        // 6. Map to response DTO
+        return mapToResponse(savedRequest);
+    }
+
+    @Override
+    public RequestDetailResponse createRelief(CreateRequestRequest request) {
+        // 1. Get UserID from SecurityContextHolder
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new BadRequestException("Người dùng chưa được xác thực");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+
+        Integer userId = user.getId();
+
+        // 2. Check Active SOS: Check if user has any request with status CREATED or IN_PROGRESS
+        List<Request.RequestStatus> activeStatuses = Arrays.asList(
+                Request.RequestStatus.CREATED,
+                Request.RequestStatus.IN_PROGRESS
+        );
+        List<Request> activeRequests = requestRepository.findByUserIdAndStatusIn(userId, activeStatuses);
+
+        if (!activeRequests.isEmpty()) {
+            throw new BadRequestException("Bạn đang có một yêu cầu SOS chưa hoàn thành");
+        }
+
+        // 3. Create new Request with default values
+        Request newRequest = new Request();
+        newRequest.setUser(user);
+        newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
+
+        newRequest.setStatus(Request.RequestStatus.CREATED);
+        newRequest.setPriority(null);
+        newRequest.setRequestType(Request.RequestType.RELIEF);
 
         // 4. Save latitude, longitude, and description from request
         newRequest.setLatitude(request.getLatitude());

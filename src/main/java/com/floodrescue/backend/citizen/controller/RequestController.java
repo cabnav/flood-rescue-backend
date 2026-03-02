@@ -20,10 +20,17 @@ public class RequestController {
 
     private final RequestService requestService;
 
-    @PostMapping
+    @PostMapping("/rescue")
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRequest(@Valid @RequestBody CreateRequestRequest request) {
-        RequestDetailResponse response = requestService.createRequest(request);
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRescue(@Valid @RequestBody CreateRequestRequest request) {
+        RequestDetailResponse response = requestService.createRescue(request);
+        return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));
+    }
+
+    @PostMapping("/relief")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRelief(@Valid @RequestBody CreateRequestRequest request) {
+        RequestDetailResponse response = requestService.createRelief(request);
         return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));
     }
 

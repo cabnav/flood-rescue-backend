@@ -8,7 +8,8 @@ import com.floodrescue.backend.citizen.model.Request;
 import java.util.List;
 
 public interface RequestService {
-    RequestDetailResponse createRequest(CreateRequestRequest request);
+    RequestDetailResponse createRescue(CreateRequestRequest request);
+    RequestDetailResponse createRelief(CreateRequestRequest request);
     RequestDetailResponse getRequestById(Integer id);
     List<RequestDetailResponse> getAllRequests();
     List<RequestDetailResponse> getRequestsByUserId(Integer userId);
