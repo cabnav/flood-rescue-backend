@@ -21,6 +21,7 @@ import com.floodrescue.backend.rescue.model.Report;
 import com.floodrescue.backend.rescue.repository.MissionRepository;
 import com.floodrescue.backend.rescue.repository.ReportRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,11 @@ import java.util.Map;
 
 @Component
 @Transactional
+@ConditionalOnProperty(
+        name = "app.seed-data",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class DataSeeder implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
@@ -188,7 +194,7 @@ public class DataSeeder implements CommandLineRunner {
         Request request3 = new Request();
         request3.setUser(citizen);
         request3.setPhone(citizen.getPhoneNumber());
-        request3.setRequestType(Request.RequestType.FOOD);
+        request3.setRequestType(Request.RequestType.RESCUE);
         request3.setLatitude(new BigDecimal("10.823099"));
         request3.setLongitude(new BigDecimal("106.629662"));
         request3.setDescription("Community center needs food and water supplies.");

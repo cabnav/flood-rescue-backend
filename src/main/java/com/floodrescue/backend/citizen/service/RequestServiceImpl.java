@@ -187,32 +187,4 @@ public class RequestServiceImpl implements RequestService {
         return mapToResponse(savedRequest);
     }
 
-    @Override
-    public RequestDetailResponse classifyRequest(Integer id, ClassifyRequestRequest requestBody) {
-        Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
-
-        // Guard: cannot classify completed or cancelled requests
-        if (request.getStatus() == Request.RequestStatus.COMPLETED
-                || request.getStatus() == Request.RequestStatus.CANCELLED) {
-            throw new IllegalStateException("Không thể phân loại yêu cầu đã đóng");
-        }
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null) {
-            throw new BadRequestException("Người dùng chưa được xác thực");
-        }
-
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email: " + email));
-
-        request.setPriority(requestBody.getPriority());
-        request.setRequestType(requestBody.getRequestType());
-        request.setClassifiedAt(LocalDateTime.now());
-        request.setClassifiedBy(user);
-
-        Request saved = requestRepository.save(request);
-        return mapToResponse(saved);
-    }
 }

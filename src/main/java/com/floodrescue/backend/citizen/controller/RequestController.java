@@ -73,12 +73,4 @@ public class RequestController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PatchMapping("/{id}/classify")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
-    public ResponseEntity<ApiResponse<RequestDetailResponse>> classifyRequest(
-            @PathVariable Integer id,
-            @Valid @RequestBody ClassifyRequestRequest request) {
-        RequestDetailResponse response = requestService.classifyRequest(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Phân loại yêu cầu thành công", response));
-    }
 }
