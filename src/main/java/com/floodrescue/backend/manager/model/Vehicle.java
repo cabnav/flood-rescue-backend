@@ -21,7 +21,7 @@ public class Vehicle {
     private VehicleDepot depot;
 
     @Column(name = "type", nullable = false)
-    private String type;
+    private String type; // Tham chiếu danh mục VehicleType (admin quản lý)
 
     @Column(name = "model")
     private String model;

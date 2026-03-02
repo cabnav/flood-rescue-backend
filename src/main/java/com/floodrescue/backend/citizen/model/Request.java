@@ -65,9 +65,7 @@ public class Request {
 
     public enum RequestType {
         RESCUE,
-        MEDICAL,
-        FOOD,
-        EVACUATION,
+        RELIEF,
         OTHER
     }
 
@@ -75,6 +73,7 @@ public class Request {
         CRITICAL,
         HIGH,
         MEDIUM,
+        NORMAL,
         LOW
     }
 

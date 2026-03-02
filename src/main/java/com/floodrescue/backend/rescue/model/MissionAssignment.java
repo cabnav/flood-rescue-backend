@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "mission_assignments")
@@ -13,6 +13,7 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MissionAssignment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -26,11 +27,27 @@ public class MissionAssignment {
     private RescueTeam rescueTeam;
 
     @Column(name = "assigned_time")
-    private LocalTime assignedTime;
+    private LocalDateTime assignedTime;
 
     @Column(name = "mission_role")
     private String missionRole;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private AssignmentStatus status = AssignmentStatus.PENDING;
+
+    @Column(name = "decline_reason", columnDefinition = "TEXT")
+    private String declineReason;
+
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    @Column(name = "declined_at")
+    private LocalDateTime declinedAt;
+
+    public enum AssignmentStatus {
+        PENDING,
+        ACCEPTED,
+        DECLINED
+    }
 }

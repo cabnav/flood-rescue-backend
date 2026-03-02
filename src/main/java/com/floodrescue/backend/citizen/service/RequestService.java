@@ -13,5 +13,6 @@ public interface RequestService {
     List<RequestDetailResponse> getAllRequests();
     List<RequestDetailResponse> getRequestsByUserId(Integer userId);
     RequestDetailResponse updateRequestStatus(Integer id, String status);
-    RequestDetailResponse classifyRequest(Integer id, ClassifyRequestRequest request);
+    RequestDetailResponse approveRequestStatus(Integer id);
+    RequestDetailResponse cancelRequestStatus(Integer id);
 }
