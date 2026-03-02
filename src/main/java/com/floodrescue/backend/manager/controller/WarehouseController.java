@@ -1,9 +1,11 @@
 package com.floodrescue.backend.manager.controller;
 
 import com.floodrescue.backend.common.dto.ApiResponse;
+import com.floodrescue.backend.manager.dto.CreateWarehouseRequest;
 import com.floodrescue.backend.manager.dto.WarehouseDetailResponse;
 import com.floodrescue.backend.manager.dto.WarehouseInventoryResponse;
 import com.floodrescue.backend.manager.service.WarehouseService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +21,7 @@ public class WarehouseController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<WarehouseDetailResponse>> createWarehouse(
-            @RequestBody com.floodrescue.backend.manager.dto.CreateWarehouseRequest request) {
+            @Valid @RequestBody CreateWarehouseRequest request) {
         WarehouseDetailResponse response = warehouseService.createWarehouse(request);
         return ResponseEntity.ok(ApiResponse.success("Warehouse created successfully", response));
     }

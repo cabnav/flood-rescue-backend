@@ -10,16 +10,21 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
-                .info(new Info().title("Flood Rescue API").version("1.0"))
+                .info(new Info()
+                        .title("Flood Rescue API")
+                        .version("v1.0")
+                        .description("API documentation for the Flood Rescue Coordination System Backend"))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
                         .addSecuritySchemes("bearerAuth", new SecurityScheme()
                                 .name("bearerAuth")
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
-                                .bearerFormat("JWT")));
+                                .bearerFormat("JWT")
+                                .description("JWT Bearer Token authentication")));
     }
 }

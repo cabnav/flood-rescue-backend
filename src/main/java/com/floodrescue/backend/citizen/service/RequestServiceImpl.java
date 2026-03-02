@@ -1,5 +1,6 @@
 package com.floodrescue.backend.citizen.service;
 
+import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
 import com.floodrescue.backend.citizen.model.Request;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,12 +35,12 @@ public class RequestServiceImpl implements RequestService {
         // 1. Get UserID from SecurityContextHolder
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
-            throw new BadRequestException("User not authenticated");
+            throw new BadRequestException("Người dùng chưa được xác thực");
         }
 
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         Integer userId = user.getId();
 
@@ -100,7 +102,7 @@ public class RequestServiceImpl implements RequestService {
     @Transactional(readOnly = true)
     public RequestDetailResponse getRequestById(Integer id) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
         return mapToResponse(request);
     }
 
@@ -183,5 +185,34 @@ public class RequestServiceImpl implements RequestService {
         notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
         notificationRepository.save(notification);
         return mapToResponse(savedRequest);
+    }
+
+    @Override
+    public RequestDetailResponse classifyRequest(Integer id, ClassifyRequestRequest requestBody) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
+
+        // Guard: cannot classify completed or cancelled requests
+        if (request.getStatus() == Request.RequestStatus.COMPLETED
+                || request.getStatus() == Request.RequestStatus.CANCELLED) {
+            throw new IllegalStateException("Không thể phân loại yêu cầu đã đóng");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new BadRequestException("Người dùng chưa được xác thực");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email: " + email));
+
+        request.setPriority(requestBody.getPriority());
+        request.setRequestType(requestBody.getRequestType());
+        request.setClassifiedAt(LocalDateTime.now());
+        request.setClassifiedBy(user);
+
+        Request saved = requestRepository.save(request);
+        return mapToResponse(saved);
     }
 }
