@@ -42,14 +42,14 @@ public class RequestController {
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM')")
     public ResponseEntity<ApiResponse<List<RequestDetailResponse>>> getRequestsByUserId(@PathVariable Integer userId) {
         List<RequestDetailResponse> responses = requestService.getRequestsByUserId(userId);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM')")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> updateRequestStatus(
             @PathVariable Integer id,
             @RequestBody String status) {
@@ -57,12 +57,19 @@ public class RequestController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PatchMapping("/{id}/classify")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
-    public ResponseEntity<ApiResponse<RequestDetailResponse>> classifyRequest(
-            @PathVariable Integer id,
-            @Valid @RequestBody ClassifyRequestRequest request) {
-        RequestDetailResponse response = requestService.classifyRequest(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Phân loại yêu cầu thành công", response));
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM')")
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> approveRequest(
+            @PathVariable Integer id) {
+        RequestDetailResponse response = requestService.approveRequestStatus(id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM')")
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> cancelRequest(
+            @PathVariable Integer id) {
+        RequestDetailResponse response = requestService.cancelRequestStatus(id);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

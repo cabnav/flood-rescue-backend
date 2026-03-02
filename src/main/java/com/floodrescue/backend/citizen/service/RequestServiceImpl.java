@@ -46,8 +46,8 @@ public class RequestServiceImpl implements RequestService {
 
         // 2. Check Active SOS: Check if user has any request with status CREATED or IN_PROGRESS
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-            Request.RequestStatus.CREATED, 
-            Request.RequestStatus.IN_PROGRESS
+                Request.RequestStatus.CREATED,
+                Request.RequestStatus.IN_PROGRESS
         );
         List<Request> activeRequests = requestRepository.findByUserIdAndStatusIn(userId, activeStatuses);
 
@@ -59,7 +59,7 @@ public class RequestServiceImpl implements RequestService {
         Request newRequest = new Request();
         newRequest.setUser(user);
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
-        
+
         // Default values (priority: dùng từ request nếu có, không thì HIGH để tránh lỗi DB constraint requests_priority_check)
         newRequest.setStatus(Request.RequestStatus.CREATED);
         newRequest.setPriority(request.getPriority() != null ? request.getPriority() : Request.Priority.HIGH);
@@ -69,7 +69,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setLatitude(request.getLatitude());
         newRequest.setLongitude(request.getLongitude());
         newRequest.setDescription(request.getDescription());
-        
+
         // Optional fields
         newRequest.setRequestSupplies(request.getRequestSupplies());
         newRequest.setRequestMedia(request.getRequestMedia());
@@ -127,9 +127,64 @@ public class RequestServiceImpl implements RequestService {
     @Override
     @Transactional
     public RequestDetailResponse updateRequestStatus(Integer id, String status) {
+        if (status == null || status.isBlank()) {
+            throw new BadRequestException("Status must not be empty");
+        }
+
+        Request.RequestStatus newStatus;
+        try {
+            newStatus = Request.RequestStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("Invalid status: " + status);
+        }
+
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
-        return null;
+
+        if (newStatus == request.getStatus()) {
+            return mapToResponse(request);
+        }
+
+        request.setStatus(newStatus);
+        Request savedRequest = requestRepository.save(request);
+
+        Notification notification = new Notification();
+        notification.setUser(savedRequest.getUser());
+        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
+        notificationRepository.save(notification);
+        return mapToResponse(savedRequest);
+    }
+
+    @Override
+    public RequestDetailResponse approveRequestStatus(Integer id) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        Request.RequestStatus newStatus = Request.RequestStatus.IN_PROGRESS;
+
+        request.setStatus(newStatus);
+        Request savedRequest = requestRepository.save(request);
+
+        Notification notification = new Notification();
+        notification.setUser(savedRequest.getUser());
+        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
+        notificationRepository.save(notification);
+        return mapToResponse(savedRequest);
+    }
+
+    @Override
+    public RequestDetailResponse cancelRequestStatus(Integer id) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        Request.RequestStatus newStatus = Request.RequestStatus.CANCELLED;
+
+        request.setStatus(newStatus);
+        Request savedRequest = requestRepository.save(request);
+
+        Notification notification = new Notification();
+        notification.setUser(savedRequest.getUser());
+        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
+        notificationRepository.save(notification);
+        return mapToResponse(savedRequest);
     }
 
     @Override
