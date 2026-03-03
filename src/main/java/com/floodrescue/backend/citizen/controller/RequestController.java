@@ -1,8 +1,11 @@
 package com.floodrescue.backend.citizen.controller;
 
+import com.floodrescue.backend.citizen.dto.CreateFeedbackRequest;
 import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
+import com.floodrescue.backend.citizen.dto.FeedbackResponse;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
+import com.floodrescue.backend.citizen.service.FeedbackService;
 import com.floodrescue.backend.citizen.service.RequestService;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -19,6 +22,7 @@ import java.util.List;
 public class RequestController {
 
     private final RequestService requestService;
+    private final FeedbackService feedbackService;
 
     @PostMapping("/rescue")
     @PreAuthorize("hasRole('CITIZEN')")
@@ -45,6 +49,15 @@ public class RequestController {
     public ResponseEntity<ApiResponse<RequestDetailResponse>> getRequestById(@PathVariable Integer id) {
         RequestDetailResponse response = requestService.getRequestById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{id}/feedback")
+    @PreAuthorize("hasRole('CITIZEN') and @requestSecurity.isOwner(#id, authentication.name)")
+    public ResponseEntity<ApiResponse<FeedbackResponse>> createFeedback(
+            @PathVariable Integer id,
+            @Valid @RequestBody CreateFeedbackRequest request) {
+        FeedbackResponse response = feedbackService.createFeedback(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Feedback submitted successfully", response));
     }
 
     @GetMapping

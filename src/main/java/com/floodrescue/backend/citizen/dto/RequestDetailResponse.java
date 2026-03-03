@@ -24,4 +24,7 @@ public class RequestDetailResponse {
     private String requestSupplies;
     private String requestMedia;
     private LocalDateTime createdAt;
+
+    private Boolean feedbackSubmitted;
+    private Boolean canGiveFeedback;
 }

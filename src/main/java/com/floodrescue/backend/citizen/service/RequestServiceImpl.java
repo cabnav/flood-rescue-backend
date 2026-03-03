@@ -7,6 +7,7 @@ import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.auth.model.User;
 import com.floodrescue.backend.auth.repository.UserRepository;
+import com.floodrescue.backend.admin.repository.FeedbackRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.admin.model.Notification;
@@ -29,6 +30,7 @@ public class RequestServiceImpl implements RequestService {
     private final RequestRepository requestRepository;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final FeedbackRepository feedbackRepository;
 
     @Override
     public RequestDetailResponse createRescue(CreateRequestRequest request) {
@@ -174,6 +176,17 @@ public class RequestServiceImpl implements RequestService {
         response.setRequestSupplies(request.getRequestSupplies());
         response.setRequestMedia(request.getRequestMedia());
         response.setCreatedAt(request.getCreatedAt());
+
+        boolean feedbackSubmitted = feedbackRepository.existsByRequestIdAndUserId(
+                request.getId(),
+                request.getUser().getId());
+        response.setFeedbackSubmitted(feedbackSubmitted);
+
+        boolean canGiveFeedback = request.getStatus() == Request.RequestStatus.COMPLETED
+                && request.getRequestType() != Request.RequestType.OTHER
+                && !feedbackSubmitted;
+        response.setCanGiveFeedback(canGiveFeedback);
+
         return response;
     }
 
