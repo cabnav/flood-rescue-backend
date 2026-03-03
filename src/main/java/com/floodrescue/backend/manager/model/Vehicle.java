@@ -39,7 +39,6 @@ public class Vehicle {
     public enum VehicleStatus {
         AVAILABLE,
         IN_USE,
-        MAINTENANCE,
-        OUT_OF_SERVICE
+        MAINTENANCE
     }
 }
