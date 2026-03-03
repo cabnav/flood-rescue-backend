@@ -63,7 +63,8 @@ public class VehicleController {
         try {
             newStatus = VehicleStatus.valueOf(request.getStatus());
         } catch (IllegalArgumentException ex) {
-            throw new com.floodrescue.backend.common.exception.BadRequestException("Invalid vehicle status: " + request.getStatus());
+            throw new com.floodrescue.backend.common.exception.BadRequestException(
+                    "Invalid vehicle status: " + request.getStatus());
         }
 
         VehicleResponse response = vehicleService.updateStatus(id, newStatus);
@@ -80,5 +81,13 @@ public class VehicleController {
         }
         List<VehicleResponse> responses = vehicleService.getVehiclesByStatus(vehicleStatus);
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/check-availability")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
+    public ResponseEntity<ApiResponse<Boolean>> checkVehicleAvailability(@RequestParam Integer vehicleId) {
+        VehicleResponse vehicle = vehicleService.getVehicleById(vehicleId);
+        boolean isAvailable = vehicle.getStatus() == VehicleStatus.AVAILABLE;
+        return ResponseEntity.ok(ApiResponse.success("Kiểm tra trạng thái phương tiện", isAvailable));
     }
 }

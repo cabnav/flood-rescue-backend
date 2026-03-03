@@ -33,11 +33,7 @@ import java.util.Map;
 
 @Component
 @Transactional
-@ConditionalOnProperty(
-        name = "app.seed-data",
-        havingValue = "true",
-        matchIfMissing = false
-)
+@ConditionalOnProperty(name = "app.seed-data", havingValue = "true", matchIfMissing = false)
 public class DataSeeder implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
@@ -53,16 +49,16 @@ public class DataSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(RoleRepository roleRepository,
-                      UserRepository userRepository,
-                      RequestRepository requestRepository,
-                      VehicleRepository vehicleRepository,
-                      WarehouseRepository warehouseRepository,
-                      InventoryRepository inventoryRepository,
-                      ItemRepository itemRepository,
-                      ReliefDistributionRepository reliefDistributionRepository,
-                      MissionRepository missionRepository,
-                      ReportRepository reportRepository,
-                      PasswordEncoder passwordEncoder) {
+            UserRepository userRepository,
+            RequestRepository requestRepository,
+            VehicleRepository vehicleRepository,
+            WarehouseRepository warehouseRepository,
+            InventoryRepository inventoryRepository,
+            ItemRepository itemRepository,
+            ReliefDistributionRepository reliefDistributionRepository,
+            MissionRepository missionRepository,
+            ReportRepository reportRepository,
+            PasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.requestRepository = requestRepository;
@@ -89,7 +85,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedRoles() {
-        String[] roleNames = {"ADMIN", "CITIZEN", "RESCUE_TEAM", "RESCUE_COORDINATOR"};
+        String[] roleNames = { "ADMIN", "CITIZEN", "RESCUE_TEAM", "RESCUE_COORDINATOR" };
         for (String roleName : roleNames) {
             roleRepository.findByName(roleName)
                     .orElseGet(() -> roleRepository.save(new Role(null, roleName)));
@@ -221,7 +217,8 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        // For now, we create vehicles without linking to a specific depot (null depot is allowed)
+        // For now, we create vehicles without linking to a specific depot (null depot
+        // is allowed)
 
         Vehicle vehicle1 = new Vehicle();
         vehicle1.setDepot(null);
@@ -257,27 +254,28 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         User admin = userRepository.findByEmail("admin@floodrescue.com")
-                .orElseThrow(() -> new IllegalStateException("Admin user not found. Ensure users are seeded before warehouses."));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Admin user not found. Ensure users are seeded before warehouses."));
 
         Warehouse warehouse1 = new Warehouse();
         warehouse1.setUser(admin);
         warehouse1.setResourceId("WH-001");
         warehouse1.setSupplyId("SUP-FOOD-001");
-        warehouse1.setStatus("ACTIVE");
+        warehouse1.setStatus(Warehouse.WarehouseStatus.ACTIVE);
         warehouseRepository.save(warehouse1);
 
         Warehouse warehouse2 = new Warehouse();
         warehouse2.setUser(admin);
         warehouse2.setResourceId("WH-002");
         warehouse2.setSupplyId("SUP-MED-001");
-        warehouse2.setStatus("ACTIVE");
+        warehouse2.setStatus(Warehouse.WarehouseStatus.ACTIVE);
         warehouseRepository.save(warehouse2);
 
         Warehouse warehouse3 = new Warehouse();
         warehouse3.setUser(admin);
         warehouse3.setResourceId("WH-003");
         warehouse3.setSupplyId("SUP-WATER-001");
-        warehouse3.setStatus("INACTIVE");
+        warehouse3.setStatus(Warehouse.WarehouseStatus.INACTIVE);
         warehouseRepository.save(warehouse3);
     }
 
@@ -375,4 +373,3 @@ public class DataSeeder implements CommandLineRunner {
         missionRepository.save(mission);
     }
 }
-

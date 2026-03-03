@@ -44,15 +44,15 @@ public class RequestServiceImpl implements RequestService {
 
         Integer userId = user.getId();
 
-        // 2. Check Active SOS: Check if user has any request with status CREATED or IN_PROGRESS
+        // 2. Check Active SOS: Only block if user already has an active RESCUE request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
                 Request.RequestStatus.CREATED,
-                Request.RequestStatus.IN_PROGRESS
-        );
-        List<Request> activeRequests = requestRepository.findByUserIdAndStatusIn(userId, activeStatuses);
+                Request.RequestStatus.IN_PROGRESS);
+        List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
+                userId, activeStatuses, Request.RequestType.RESCUE);
 
         if (!activeRequests.isEmpty()) {
-            throw new BadRequestException("Bạn đang có một yêu cầu SOS chưa hoàn thành");
+            throw new BadRequestException("Bạn đã có yêu cầu Cứu hộ đang xử lý");
         }
 
         // 3. Create new Request with default values
@@ -94,15 +94,15 @@ public class RequestServiceImpl implements RequestService {
 
         Integer userId = user.getId();
 
-        // 2. Check Active SOS: Check if user has any request with status CREATED or IN_PROGRESS
+        // 2. Check Active SOS: Only block if user already has an active RELIEF request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
                 Request.RequestStatus.CREATED,
-                Request.RequestStatus.IN_PROGRESS
-        );
-        List<Request> activeRequests = requestRepository.findByUserIdAndStatusIn(userId, activeStatuses);
+                Request.RequestStatus.IN_PROGRESS);
+        List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
+                userId, activeStatuses, Request.RequestType.RELIEF);
 
         if (!activeRequests.isEmpty()) {
-            throw new BadRequestException("Bạn đang có một yêu cầu SOS chưa hoàn thành");
+            throw new BadRequestException("Bạn đã có yêu cầu Tiếp tế đang xử lý");
         }
 
         // 3. Create new Request with default values
@@ -111,7 +111,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
         newRequest.setStatus(Request.RequestStatus.CREATED);
-        newRequest.setPriority(null);
+        newRequest.setPriority(request.getPriority() != null ? request.getPriority() : Request.Priority.MEDIUM);
         newRequest.setRequestType(Request.RequestType.RELIEF);
 
         // 4. Save latitude, longitude, and description from request
@@ -128,6 +128,36 @@ public class RequestServiceImpl implements RequestService {
 
         // 6. Map to response DTO
         return mapToResponse(savedRequest);
+    }
+
+    @Override
+    @Transactional
+    public RequestDetailResponse classifyRequest(Integer id, ClassifyRequestRequest requestBody) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
+
+        // Guard: cannot classify completed or cancelled requests
+        if (request.getStatus() == Request.RequestStatus.COMPLETED
+                || request.getStatus() == Request.RequestStatus.CANCELLED) {
+            throw new IllegalStateException("Không thể phân loại yêu cầu đã đóng");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new BadRequestException("Người dùng chưa được xác thực");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email: " + email));
+
+        request.setPriority(requestBody.getPriority());
+        request.setRequestType(requestBody.getRequestType());
+        request.setClassifiedAt(LocalDateTime.now());
+        request.setClassifiedBy(user);
+
+        Request saved = requestRepository.save(request);
+        return mapToResponse(saved);
     }
 
     private RequestDetailResponse mapToResponse(Request request) {
@@ -151,7 +181,7 @@ public class RequestServiceImpl implements RequestService {
     @Transactional(readOnly = true)
     public RequestDetailResponse getRequestById(Integer id) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
         return mapToResponse(request);
     }
 
@@ -177,18 +207,18 @@ public class RequestServiceImpl implements RequestService {
     @Transactional
     public RequestDetailResponse updateRequestStatus(Integer id, String status) {
         if (status == null || status.isBlank()) {
-            throw new BadRequestException("Status must not be empty");
+            throw new BadRequestException("Trạng thái không được để trống");
         }
 
         Request.RequestStatus newStatus;
         try {
             newStatus = Request.RequestStatus.valueOf(status.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new BadRequestException("Invalid status: " + status);
+            throw new BadRequestException("Trạng thái không hợp lệ: " + status);
         }
 
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
 
         if (newStatus == request.getStatus()) {
             return mapToResponse(request);
@@ -199,7 +229,7 @@ public class RequestServiceImpl implements RequestService {
 
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());
-        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
+        notification.setMessage("Yêu cầu SOS #" + savedRequest.getId() + " đã được cập nhật trạng thái: " + newStatus);
         notificationRepository.save(notification);
         return mapToResponse(savedRequest);
     }
@@ -207,7 +237,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public RequestDetailResponse approveRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
         Request.RequestStatus newStatus = Request.RequestStatus.IN_PROGRESS;
 
         request.setStatus(newStatus);
@@ -215,7 +245,7 @@ public class RequestServiceImpl implements RequestService {
 
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());
-        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
+        notification.setMessage("Yêu cầu SOS #" + savedRequest.getId() + " đã được cập nhật trạng thái: " + newStatus);
         notificationRepository.save(notification);
         return mapToResponse(savedRequest);
     }
@@ -223,7 +253,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public RequestDetailResponse cancelRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
         Request.RequestStatus newStatus = Request.RequestStatus.CANCELLED;
 
         request.setStatus(newStatus);
@@ -231,7 +261,7 @@ public class RequestServiceImpl implements RequestService {
 
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());
-        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
+        notification.setMessage("Yêu cầu SOS #" + savedRequest.getId() + " đã được cập nhật trạng thái: " + newStatus);
         notificationRepository.save(notification);
         return mapToResponse(savedRequest);
     }

@@ -22,24 +22,26 @@ public class RequestController {
 
     @PostMapping("/rescue")
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRescue(@Valid @RequestBody CreateRequestRequest request) {
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRescue(
+            @Valid @RequestBody CreateRequestRequest request) {
         RequestDetailResponse response = requestService.createRescue(request);
         return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));
     }
 
     @PostMapping("/relief")
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRelief(@Valid @RequestBody CreateRequestRequest request) {
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> createRelief(
+            @Valid @RequestBody CreateRequestRequest request) {
         RequestDetailResponse response = requestService.createRelief(request);
         return ResponseEntity.ok(ApiResponse.success("Request created successfully", response));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("""
-    hasRole('ADMIN') or
-    hasRole('RESCUE_COORDINATOR') or
-    hasRole('RESCUE_TEAM') or
-    (hasRole('CITIZEN') and @requestSecurity.isOwner(#id, authentication.name))""")
+            hasRole('ADMIN') or
+            hasRole('RESCUE_COORDINATOR') or
+            hasRole('RESCUE_TEAM') or
+            (hasRole('CITIZEN') and @requestSecurity.isOwner(#id, authentication.name))""")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> getRequestById(@PathVariable Integer id) {
         RequestDetailResponse response = requestService.getRequestById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -82,6 +84,15 @@ public class RequestController {
             @PathVariable Integer id) {
         RequestDetailResponse response = requestService.cancelRequestStatus(id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PatchMapping("/{id}/classify")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse<RequestDetailResponse>> classifyRequest(
+            @PathVariable Integer id,
+            @Valid @RequestBody ClassifyRequestRequest request) {
+        RequestDetailResponse response = requestService.classifyRequest(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Phân loại yêu cầu thành công", response));
     }
 
 }

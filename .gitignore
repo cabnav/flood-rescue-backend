@@ -34,17 +34,21 @@ build/
 
 ### Temporary/Backup Files ###
 *.backup
+*.bak
+*.tmp
 *.log
 
 ### Local Documentation & Reports ###
-BUSINESS_RULES_AUDIT_REPORT.md
-BUSINESS_RULES_FINAL_AUDIT_REPORT.md
+SPRINT2_*.md
+API_*.md
 BUSINESS_RULES_*.md
 PROJECT_STRUCTURE.md
 project_structure.txt
-API_INTEGRATION_GUIDE.md
-SPRINT2_HANDOFF_*.md
 DOC_MG01_*.md
 
 ### External Materials ###
 grevo-be-material/
+
+### Gemini Agent ###
+.gemini/
+.agents/

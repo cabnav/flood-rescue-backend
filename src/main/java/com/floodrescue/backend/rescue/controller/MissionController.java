@@ -3,13 +3,15 @@ package com.floodrescue.backend.rescue.controller;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
+import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
+import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
 import com.floodrescue.backend.rescue.dto.MissionReportRequest;
 import com.floodrescue.backend.rescue.dto.MissionReportResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
-import com.floodrescue.backend.rescue.service.MissionService;
 import com.floodrescue.backend.rescue.service.MissionReportService;
+import com.floodrescue.backend.rescue.service.MissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,9 +44,9 @@ public class MissionController {
 
     @GetMapping("/{id}")
     @PreAuthorize("""
-    hasRole('ADMIN') or
-    hasRole('RESCUE_COORDINATOR') or
-    (hasRole('RESCUE_TEAM') and @missionSecurity.isAssignedToUser(#id, authentication.name))""")
+            hasRole('ADMIN') or
+            hasRole('RESCUE_COORDINATOR') or
+            (hasRole('RESCUE_TEAM') and @missionSecurity.isAssignedToUser(#id, authentication.name))""")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> getMissionById(@PathVariable Integer id) {
         MissionDetailResponse response = missionService.getMissionById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -79,9 +81,44 @@ public class MissionController {
     @PreAuthorize("hasRole('RESCUE_TEAM')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> respondToMissionAssignment(
             @PathVariable Integer assignmentId,
-            @RequestBody MissionAssignmentResponseRequest request
-    ) {
+            @RequestBody MissionAssignmentResponseRequest request) {
         MissionDetailResponse response = missionService.respondToMissionAssignment(assignmentId, request);
         return ResponseEntity.ok(ApiResponse.success("Assignment response submitted successfully", response));
+    }
+
+    // =====================================================================
+    // Feature 2: Vehicle Dispatch
+    // =====================================================================
+    @PostMapping("/{id}/assign-vehicle")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
+    public ResponseEntity<ApiResponse<MissionDetailResponse>> assignVehicleToMission(
+            @PathVariable Integer id,
+            @Valid @RequestBody AssignVehicleRequest request) {
+        MissionDetailResponse response = missionService.assignVehicleToMission(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Gán phương tiện thành công", response));
+    }
+
+    // =====================================================================
+    // Feature 3: Inventory Deduction
+    // =====================================================================
+    @PostMapping("/{id}/assign-supplies")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
+    public ResponseEntity<ApiResponse<MissionDetailResponse>> assignSuppliesToMission(
+            @PathVariable Integer id,
+            @Valid @RequestBody AssignSuppliesRequest request) {
+        MissionDetailResponse response = missionService.assignSuppliesToMission(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Gán vật tư thành công", response));
+    }
+
+    // =====================================================================
+    // RT-03: Mission Final Report (Rescue Team)
+    // =====================================================================
+    @PostMapping("/{id}/report")
+    @PreAuthorize("hasRole('RESCUE_TEAM')")
+    public ResponseEntity<ApiResponse<MissionReportResponse>> createMissionReport(
+            @PathVariable Integer id,
+            @Valid @RequestBody MissionReportRequest request) {
+        MissionReportResponse response = missionReportService.createReport(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Báo cáo nhiệm vụ đã được ghi nhận thành công", response));
     }
 }

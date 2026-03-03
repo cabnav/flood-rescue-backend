@@ -10,6 +10,7 @@ import java.util.List;
 public interface RequestService {
     RequestDetailResponse createRescue(CreateRequestRequest request);
     RequestDetailResponse createRelief(CreateRequestRequest request);
+    RequestDetailResponse classifyRequest(Integer id, ClassifyRequestRequest request);
     RequestDetailResponse getRequestById(Integer id);
     List<RequestDetailResponse> getAllRequests();
     List<RequestDetailResponse> getRequestsByUserId(Integer userId);
