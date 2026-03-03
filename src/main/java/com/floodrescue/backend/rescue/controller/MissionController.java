@@ -41,6 +41,10 @@ public class MissionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("""
+    hasRole('ADMIN') or
+    hasRole('RESCUE_COORDINATOR') or
+    (hasRole('RESCUE_TEAM') and @missionSecurity.isAssignedToUser(#id, authentication.name))""")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> getMissionById(@PathVariable Integer id) {
         MissionDetailResponse response = missionService.getMissionById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -63,7 +67,7 @@ public class MissionController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN', 'RESCUE_TEAM')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> updateMissionStatus(
             @PathVariable Integer id,
             @Valid @RequestBody MissionStatusUpdateRequest request) {
