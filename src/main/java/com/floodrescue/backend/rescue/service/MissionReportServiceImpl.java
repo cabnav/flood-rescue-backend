@@ -25,6 +25,8 @@ public class MissionReportServiceImpl implements MissionReportService {
     private final MissionRepository missionRepository;
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final com.floodrescue.backend.manager.repository.MissionVehicleRepository missionVehicleRepository;
+    private final com.floodrescue.backend.manager.repository.VehicleRepository vehicleRepository;
 
     @Override
     @Transactional
@@ -59,6 +61,16 @@ public class MissionReportServiceImpl implements MissionReportService {
         mission.setStatus(Mission.MissionStatus.COMPLETED);
         mission.setEndTime(LocalDateTime.now());
         missionRepository.save(mission);
+
+        // Tự động giải phóng phương tiện sau khi nhiệm vụ hoàn thành
+        missionVehicleRepository.findByMissionId(mission.getId()).forEach(mv -> {
+            com.floodrescue.backend.manager.model.Vehicle vehicle = mv.getVehicle();
+            if (vehicle != null
+                    && vehicle.getStatus() == com.floodrescue.backend.manager.model.Vehicle.VehicleStatus.IN_USE) {
+                vehicle.setStatus(com.floodrescue.backend.manager.model.Vehicle.VehicleStatus.AVAILABLE);
+                vehicleRepository.save(vehicle);
+            }
+        });
 
         return mapToResponse(saved);
     }

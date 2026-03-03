@@ -108,6 +108,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    @Transactional
     public MissionDetailResponse updateMissionStatus(Integer id, MissionStatusUpdateRequest request) {
         if (request == null || request.getStatus() == null) {
             throw new BadRequestException("Status is required");
@@ -133,6 +134,11 @@ public class MissionServiceImpl implements MissionService {
         }
 
         Mission saved = missionRepository.save(mission);
+
+        if (newStatus == Mission.MissionStatus.COMPLETED) {
+            releaseVehiclesForMission(saved);
+        }
+
         return mapToResponse(saved);
     }
 
@@ -253,6 +259,12 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy tồn kho với id: " + request.getInventoryId()));
 
+        // 2b. Guard: item must be ACTIVE
+        if (inventory.getItem() != null
+                && inventory.getItem().getStatus() == com.floodrescue.backend.manager.model.Item.ItemStatus.INACTIVE) {
+            throw new BadRequestException("Vật phẩm này hiện không hoạt động, không thể gán vào nhiệm vụ");
+        }
+
         // 3. Check sufficient stock
         if (request.getQuantity() > inventory.getQuantity()) {
             throw new BadRequestException("Không đủ tồn kho");
@@ -276,6 +288,17 @@ public class MissionServiceImpl implements MissionService {
     // =====================================================================
     // Private helper methods
     // =====================================================================
+
+    private void releaseVehiclesForMission(Mission mission) {
+        List<MissionVehicle> missionVehicles = missionVehicleRepository.findByMissionId(mission.getId());
+        for (MissionVehicle mv : missionVehicles) {
+            Vehicle vehicle = mv.getVehicle();
+            if (vehicle != null && vehicle.getStatus() == Vehicle.VehicleStatus.IN_USE) {
+                vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
+                vehicleRepository.save(vehicle);
+            }
+        }
+    }
 
     private MissionDetailResponse mapToResponse(Mission mission) {
         MissionDetailResponse response = new MissionDetailResponse();

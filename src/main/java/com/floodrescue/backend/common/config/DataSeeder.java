@@ -319,7 +319,7 @@ public class DataSeeder implements CommandLineRunner {
         item.setName("Gạo cứu trợ");
         item.setItemType(Item.ItemType.FOOD);
         item.setCapacity("10kg");
-        item.setStatus("ACTIVE");
+        item.setStatus(Item.ItemStatus.ACTIVE);
         Item savedItem = itemRepository.save(item);
 
         Inventory inventory = new Inventory();
