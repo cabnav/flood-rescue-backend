@@ -17,6 +17,7 @@ import java.util.List;
  * Chỉ Admin được chỉnh sửa (POST/PUT/DELETE). Đọc danh mục cho tất cả role đã xác thực.
  * Áp dụng cho ca mới.
  */
+@PreAuthorize("isAuthenticated()")
 @RestController
 @RequestMapping("/api/v1/admin/catalog")
 @RequiredArgsConstructor

@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Warehouse {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -26,6 +27,13 @@ public class Warehouse {
     @Column(name = "supply_id")
     private String supplyId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private WarehouseStatus status;
+
+    public enum WarehouseStatus {
+        ACTIVE,
+        INACTIVE,
+        LOCKED
+    }
 }

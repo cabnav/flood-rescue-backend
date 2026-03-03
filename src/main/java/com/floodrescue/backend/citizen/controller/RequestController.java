@@ -26,7 +26,11 @@ public class RequestController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("""
+    hasRole('ADMIN') or
+    hasRole('RESCUE_COORDINATOR') or
+    hasRole('RESCUE_TEAM') or
+    (hasRole('CITIZEN') and @requestSecurity.isOwner(#id, authentication.name))""")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> getRequestById(@PathVariable Integer id) {
         RequestDetailResponse response = requestService.getRequestById(id);
         return ResponseEntity.ok(ApiResponse.success(response));

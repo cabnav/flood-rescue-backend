@@ -40,7 +40,11 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setUser(user);
         warehouse.setResourceId(request.getResourceId());
         warehouse.setSupplyId(request.getSupplyId());
-        warehouse.setStatus(request.getStatus());
+        warehouse.setStatus(
+                Warehouse.WarehouseStatus.valueOf(
+                        request.getStatus().toUpperCase()
+                )
+        );
 
         Warehouse saved = warehouseRepository.save(warehouse);
         return mapToDetailResponse(saved);
@@ -91,7 +95,7 @@ public class WarehouseServiceImpl implements WarehouseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + request.getItemId()));
 
         if (request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new BadRequestException("Số lượng nhập phải lớn hơn 0");
+            throw new BadRequestException("The quantity exported must be greater than 0");
         }
 
         Inventory inventory = inventoryRepository.findByWarehouseIdAndItemId(warehouse.getId(), item.getId());
@@ -127,12 +131,12 @@ public class WarehouseServiceImpl implements WarehouseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + request.getItemId()));
 
         if (request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new BadRequestException("Số lượng xuất phải lớn hơn 0");
+            throw new BadRequestException("The quantity exported must be greater than 0");
         }
 
         Inventory inventory = inventoryRepository.findByWarehouseIdAndItemId(warehouse.getId(), item.getId());
         if (inventory == null || inventory.getQuantity() < request.getQuantity()) {
-            throw new BadRequestException("Không đủ tồn kho để xuất");
+            throw new BadRequestException("Insufficient storage space to export");
         }
 
         int before = inventory.getQuantity();
