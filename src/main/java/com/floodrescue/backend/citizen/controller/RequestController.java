@@ -55,7 +55,7 @@ public class RequestController {
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM', 'CITIZEN')")
     public ResponseEntity<ApiResponse<List<RequestDetailResponse>>> getRequestsByUserId(@PathVariable Integer userId) {
         List<RequestDetailResponse> responses = requestService.getRequestsByUserId(userId);
         return ResponseEntity.ok(ApiResponse.success(responses));

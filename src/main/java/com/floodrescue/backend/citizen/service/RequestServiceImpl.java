@@ -11,6 +11,7 @@ import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.admin.model.Notification;
 import com.floodrescue.backend.admin.repository.NotificationRepository;
+import com.floodrescue.backend.rescue.service.MissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +30,7 @@ public class RequestServiceImpl implements RequestService {
     private final RequestRepository requestRepository;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final MissionService missionService;
 
     @Override
     public RequestDetailResponse createRescue(CreateRequestRequest request) {
@@ -61,7 +63,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
         newRequest.setStatus(Request.RequestStatus.CREATED);
-        newRequest.setPriority(request.getPriority() != null ? request.getPriority() : Request.Priority.HIGH);
+        newRequest.setPriority(null);
         newRequest.setRequestType(Request.RequestType.RESCUE);
 
         // 4. Save latitude, longitude, and description from request
@@ -111,7 +113,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
         newRequest.setStatus(Request.RequestStatus.CREATED);
-        newRequest.setPriority(request.getPriority() != null ? request.getPriority() : Request.Priority.MEDIUM);
+        newRequest.setPriority(null);
         newRequest.setRequestType(Request.RequestType.RELIEF);
 
         // 4. Save latitude, longitude, and description from request
@@ -235,13 +237,22 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
+    @Transactional
     public RequestDetailResponse approveRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
+
+        if (request.getStatus() == Request.RequestStatus.COMPLETED
+                || request.getStatus() == Request.RequestStatus.CANCELLED) {
+            throw new BadRequestException("Không thể duyệt yêu cầu đã hoàn tất hoặc đã hủy");
+        }
+
         Request.RequestStatus newStatus = Request.RequestStatus.IN_PROGRESS;
 
         request.setStatus(newStatus);
         Request savedRequest = requestRepository.save(request);
+
+        missionService.createMission(savedRequest.getId());
 
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());
