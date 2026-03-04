@@ -183,11 +183,11 @@ public class MissionServiceImpl implements MissionService {
 
         String decision = request.getDecision().toUpperCase(Locale.ROOT);
         switch (decision) {
-            case "ACCEPT":
+            case "ACCEPTED":
                 assignment.setStatus(MissionAssignment.AssignmentStatus.ACCEPTED);
                 assignment.setDeclineReason(null);
                 break;
-            case "DECLINE":
+            case "DECLINED":
                 if (request.getReason() == null || request.getReason().isBlank()) {
                     throw new BadRequestException("Decline reason is required");
                 }
