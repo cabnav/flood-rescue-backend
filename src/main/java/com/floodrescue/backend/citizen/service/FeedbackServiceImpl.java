@@ -63,9 +63,12 @@ public class FeedbackServiceImpl implements FeedbackService {
             }
         });
 
-        Integer rating = request != null ? request.getRating() : null;
-        if (rating == null || rating < 1 || rating > 5) {
-            throw new BadRequestException("Rating must be between 1 and 5");
+        if (request == null || request.getIsSafe() == null) {
+            throw new BadRequestException("Bạn cần xác nhận trạng thái an toàn của mình");
+        }
+
+        if (!Boolean.TRUE.equals(request.getIsSafe())) {
+            throw new BadRequestException("Bạn chỉ có thể gửi xác nhận khi đã an toàn / đã nhận được hỗ trợ");
         }
 
         if (feedbackRepository.existsByRequestIdAndUserId(requestId, user.getId())) {
@@ -77,7 +80,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         Feedback feedback = new Feedback();
         feedback.setRequest(sosRequest);
         feedback.setUser(user);
-        feedback.setRating(rating);
+        feedback.setIsSafe(true);
         feedback.setComment(request.getComment());
         feedback.setFeedbackType(feedbackType);
 
@@ -90,7 +93,7 @@ public class FeedbackServiceImpl implements FeedbackService {
                 feedback.getId(),
                 feedback.getRequest().getId(),
                 feedback.getUser().getId(),
-                feedback.getRating(),
+                feedback.getIsSafe(),
                 feedback.getComment(),
                 feedback.getFeedbackType(),
                 feedback.getCreatedAt());

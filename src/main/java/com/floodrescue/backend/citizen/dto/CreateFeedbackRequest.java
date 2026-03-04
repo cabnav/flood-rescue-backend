@@ -1,7 +1,6 @@
 package com.floodrescue.backend.citizen.dto;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -13,11 +12,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateFeedbackRequest {
 
-    @NotNull(message = "Rating is required")
-    @Min(value = 1, message = "Rating must be between 1 and 5")
-    @Max(value = 5, message = "Rating must be between 1 and 5")
-    private Integer rating;
+    @NotNull(message = "Bạn cần xác nhận trạng thái an toàn")
+    private Boolean isSafe;
 
+    @NotBlank(message = "Vui lòng nhập mô tả tình trạng của bạn / phản hồi hỗ trợ")
     @Size(max = 2000, message = "Comment must be at most 2000 characters")
     private String comment;
 }

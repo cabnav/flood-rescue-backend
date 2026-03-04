@@ -14,7 +14,7 @@ public class FeedbackResponse {
     private Integer id;
     private Integer requestId;
     private Integer userId;
-    private Integer rating;
+    private Boolean isSafe;
     private String comment;
     private Feedback.FeedbackType feedbackType;
     private LocalDateTime createdAt;
