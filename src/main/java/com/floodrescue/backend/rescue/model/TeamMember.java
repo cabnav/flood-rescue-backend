@@ -26,4 +26,12 @@ public class TeamMember {
 
     @Column(name = "role_in_team")
     private String roleInTeam;
+
+    public enum roleInTeam {
+        LEADER,
+        MEMBER
+    }
 }
+
+
+
