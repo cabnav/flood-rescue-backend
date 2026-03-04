@@ -17,6 +17,7 @@ import com.floodrescue.backend.rescue.repository.MissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,12 +81,18 @@ public class FeedbackServiceImpl implements FeedbackService {
         Feedback feedback = new Feedback();
         feedback.setRequest(sosRequest);
         feedback.setUser(user);
+        // DB compatibility: feedbacks.rating is NOT NULL; CZ-04 domain uses only isSafe + comment. See Feedback.java javadoc.
+        feedback.setRating(5);
         feedback.setIsSafe(true);
         feedback.setComment(request.getComment());
         feedback.setFeedbackType(feedbackType);
 
-        Feedback saved = feedbackRepository.save(feedback);
-        return mapToResponse(saved);
+        try {
+            Feedback saved = feedbackRepository.save(feedback);
+            return mapToResponse(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException("Bạn đã gửi đánh giá cho yêu cầu này");
+        }
     }
 
     private FeedbackResponse mapToResponse(Feedback feedback) {
