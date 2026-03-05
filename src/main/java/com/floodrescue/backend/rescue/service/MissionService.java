@@ -27,7 +27,7 @@ public interface MissionService {
     List<AssignedMissionResponse> getMissionsAssignedToCurrentRescuer();
 
     /**
-     * RT-01: Rescuer responds (ACCEPT/DECLINE) to a mission assignment.
+     * RT-01: Rescuer responds (ACCEPTED/DECLINED) to a mission assignment.
      */
     MissionDetailResponse respondToMissionAssignment(Integer assignmentId, MissionAssignmentResponseRequest request);
 
