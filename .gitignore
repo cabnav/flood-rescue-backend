@@ -39,12 +39,9 @@ build/
 *.log
 
 ### Local Documentation & Reports ###
-SPRINT2_*.md
-API_*.md
-BUSINESS_RULES_*.md
-PROJECT_STRUCTURE.md
-project_structure.txt
-DOC_MG01_*.md
+*.md
+!README.md
+*.txt
 
 ### External Materials ###
 grevo-be-material/

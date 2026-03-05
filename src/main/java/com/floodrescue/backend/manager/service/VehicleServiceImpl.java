@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -97,6 +96,11 @@ public class VehicleServiceImpl implements VehicleService {
                 .toList();
     }
 
+    @Override
+    public boolean isAnyVehicleAvailable() {
+        return vehicleRepository.countByStatus(Vehicle.VehicleStatus.AVAILABLE) > 0;
+    }
+
     private VehicleResponse mapToResponse(Vehicle vehicle) {
         Integer depotId = vehicle.getDepot() != null ? vehicle.getDepot().getDepotId() : null;
         return new VehicleResponse(
@@ -106,7 +110,6 @@ public class VehicleServiceImpl implements VehicleService {
                 vehicle.getModel(),
                 vehicle.getLicensePlate(),
                 vehicle.getCapacityPerson(),
-                vehicle.getStatus()
-        );
+                vehicle.getStatus());
     }
 }

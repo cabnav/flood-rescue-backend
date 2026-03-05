@@ -18,4 +18,6 @@ public interface RequestRepository extends JpaRepository<Request, Integer> {
 
     List<Request> findByUserIdAndStatusInAndRequestType(Integer userId, List<Request.RequestStatus> statuses,
             Request.RequestType requestType);
+
+    long countByStatus(Request.RequestStatus status);
 }

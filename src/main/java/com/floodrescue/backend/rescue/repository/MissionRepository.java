@@ -10,7 +10,10 @@ import java.util.Optional;
 @Repository
 public interface MissionRepository extends JpaRepository<Mission, Integer> {
     List<Mission> findByStatus(String status);
+
     List<Mission> findByMissionType(Mission.MissionType missionType);
 
     Optional<Mission> findByRequest_Id(Integer requestId);
+
+    long countByStatus(Mission.MissionStatus status);
 }
