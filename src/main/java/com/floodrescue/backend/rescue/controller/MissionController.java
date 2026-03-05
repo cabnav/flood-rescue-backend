@@ -25,7 +25,7 @@ public class MissionController {
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> createMission(@PathVariable Integer requestId) {
         MissionDetailResponse response = missionService.createMission(requestId);
-        return ResponseEntity.ok(ApiResponse.success("Mission created successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Nhiệm vụ được hoàn thành thành công", response));
     }
 
     @GetMapping("/assigned-to-me")
@@ -54,7 +54,7 @@ public class MissionController {
             @PathVariable Integer id,
             @RequestBody AssignMissionRequest request) {
         MissionDetailResponse response = missionService.assignMission(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Team assigned successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Nhóm được giao nhiệm vụ thành công", response));
     }
 
     @PatchMapping("/{id}/status")
@@ -63,7 +63,7 @@ public class MissionController {
             @PathVariable Integer id,
             @RequestBody MissionStatusUpdateRequest request) {
         MissionDetailResponse response = missionService.updateMissionStatus(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Trạng thái đã được cập nhật thành công", response));
     }
 
     @PatchMapping("/assignments/{assignmentId}/response")
@@ -73,6 +73,6 @@ public class MissionController {
             @RequestBody MissionAssignmentResponseRequest request
     ) {
         MissionDetailResponse response = missionService.respondToMissionAssignment(assignmentId, request);
-        return ResponseEntity.ok(ApiResponse.success("Assignment response submitted successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Phân công đã được phản hồi thành công", response));
     }
 }

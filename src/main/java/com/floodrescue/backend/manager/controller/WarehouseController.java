@@ -21,7 +21,7 @@ public class WarehouseController {
     public ResponseEntity<ApiResponse<WarehouseDetailResponse>> createWarehouse(
             @RequestBody com.floodrescue.backend.manager.dto.CreateWarehouseRequest request) {
         WarehouseDetailResponse response = warehouseService.createWarehouse(request);
-        return ResponseEntity.ok(ApiResponse.success("Warehouse created successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Kho hàng đã được tạo thành công", response));
     }
 
     @GetMapping("/{id}")

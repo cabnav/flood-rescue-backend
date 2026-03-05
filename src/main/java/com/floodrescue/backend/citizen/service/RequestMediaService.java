@@ -5,8 +5,15 @@ import com.floodrescue.backend.citizen.model.RequestMedia;
 import com.floodrescue.backend.citizen.repository.RequestMediaRepository;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import java.io.IOException;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -15,22 +22,30 @@ public class RequestMediaService {
     private final RequestRepository requestRepository;
     private final RequestMediaRepository requestMediaRepository;
 
+    private final S3Client s3Client;
+
+    @Value("${r2.bucket-name}")
+    private String bucketName;
+
+    @Value("${r2.public-base-url}")
+    private String publicBaseUrl;
+
     public String uploadMedia(Integer requestId, MultipartFile file) {
 
         Request request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found"));
+                .orElseThrow(() -> new RuntimeException("Yêu cầu không tìm thấyd"));
 
         // Validate file size (30MB max)
         long maxSize = 30 * 1024 * 1024;
         if (file.getSize() > maxSize) {
-            throw new RuntimeException("File too large");
+            throw new RuntimeException("Tệp quá lớn");
         }
 
         // Determine media type
         String contentType = file.getContentType();
 
         if (contentType == null) {
-            throw new RuntimeException("File content type is null");
+            throw new RuntimeException("Loại nội dung tệp là null");
         }
 
         RequestMedia.MediaType mediaType;
@@ -42,10 +57,9 @@ public class RequestMediaService {
             mediaType = RequestMedia.MediaType.VIDEO;
         }
         else {
-            throw new RuntimeException("Invalid file type: " + contentType);
+            throw new RuntimeException("Loại tệp không hợp lệ: " + contentType);
         }
 
-        // TODO: upload file to cloud or local storage
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isBlank()) {
             originalFilename = "file";
@@ -60,19 +74,23 @@ public class RequestMediaService {
         String storedFileName = "request-" + requestId + "-" + UUID.randomUUID() + extension;
 
         try {
-            Path requestDir = Paths.get(uploadDir, "requests", String.valueOf(requestId))
-                    .toAbsolutePath()
-                    .normalize();
-            Files.createDirectories(requestDir);
+            String key = "requests/" + requestId + "/" + storedFileName;
 
-            Path targetLocation = requestDir.resolve(storedFileName);
-            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .build();
+
+            s3Client.putObject(
+                    putObjectRequest,
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
         } catch (IOException e) {
-            throw new RuntimeException("Could not store file", e);
+            throw new RuntimeException("Không thể tải tệp lên đám mây", e);
         }
 
-        // Public URL mapping (served via WebMvc resource handler)
-        String fileUrl = "/uploads/requests/" + requestId + "/" + storedFileName;
+        String fileUrl = publicBaseUrl + "/requests/" + requestId + "/" + storedFileName;
 
         RequestMedia media = RequestMedia.builder()
                 .request(request)
@@ -86,4 +104,5 @@ public class RequestMediaService {
 
         return fileUrl;
     }
+
 }
