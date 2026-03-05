@@ -167,7 +167,6 @@ public class DataSeeder implements CommandLineRunner {
         request1.setPriority(Request.Priority.CRITICAL);
         request1.setStatus(Request.RequestStatus.CREATED);
         request1.setRequestSupplies("Life jackets, rope");
-        request1.setRequestMedia("https://example.com/media1.jpg");
         request1.setCreatedAt(LocalDateTime.now().minusHours(1));
         requestRepository.save(request1);
 
@@ -182,7 +181,6 @@ public class DataSeeder implements CommandLineRunner {
         request2.setPriority(Request.Priority.HIGH);
         request2.setStatus(Request.RequestStatus.IN_PROGRESS);
         request2.setRequestSupplies("Boat, medical kit");
-        request2.setRequestMedia("No media provided");
         request2.setCreatedAt(LocalDateTime.now().minusMinutes(45));
         requestRepository.save(request2);
 
@@ -197,7 +195,6 @@ public class DataSeeder implements CommandLineRunner {
         request3.setPriority(Request.Priority.MEDIUM);
         request3.setStatus(Request.RequestStatus.CREATED);
         request3.setRequestSupplies("Bottled water, instant noodles");
-        request3.setRequestMedia("No media provided");
         request3.setCreatedAt(LocalDateTime.now().minusMinutes(30));
 
         // Sample classified request

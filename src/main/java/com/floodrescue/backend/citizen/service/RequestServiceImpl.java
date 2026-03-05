@@ -4,9 +4,9 @@ import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
 import com.floodrescue.backend.citizen.model.Request;
-import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.auth.model.User;
 import com.floodrescue.backend.auth.repository.UserRepository;
+import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.admin.model.Notification;
@@ -122,7 +122,6 @@ public class RequestServiceImpl implements RequestService {
 
         // Optional fields
         newRequest.setRequestSupplies(request.getRequestSupplies());
-        newRequest.setRequestMedia(request.getRequestMedia());
 
         // 5. Save to database
         Request savedRequest = requestRepository.save(newRequest);
