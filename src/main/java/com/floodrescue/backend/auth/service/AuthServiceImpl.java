@@ -19,7 +19,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -84,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
         RegisterResponse response = new RegisterResponse();
         response.setUserId(savedUser.getId());
         response.setEmail(savedUser.getEmail());
-        
+
         if (isActive) {
             response.setMessage("User registered successfully");
         } else {
@@ -105,12 +104,13 @@ public class AuthServiceImpl implements AuthService {
         if (user.getLockTime() != null) {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime unlockTime = user.getLockTime().plusMinutes(LOCK_TIME_DURATION_MINUTES);
-            
+
             if (now.isBefore(unlockTime)) {
                 // Tài khoản vẫn còn bị khóa
                 throw new UnauthorizedAccessException("Account is locked. Please try again later.");
             } else {
-                // Hết hạn khóa do đăng nhập sai -> Mở khóa tự động (không ảnh hưởng pending approval)
+                // Hết hạn khóa do đăng nhập sai -> Mở khóa tự động (không ảnh hưởng pending
+                // approval)
                 // Chỉ auto-reactivate nếu đây đúng là lock do failed attempts.
                 if (user.getFailedAttempt() != null && user.getFailedAttempt() >= MAX_FAILED_ATTEMPTS) {
                     user.setFailedAttempt(0);
@@ -123,19 +123,18 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // Nếu tài khoản đang bị inactive (pending approval / blocked) thì không cho login
-            if (Boolean.FALSE.equals(user.getIsActive())) {
+        // Nếu tài khoản đang bị inactive (pending approval / blocked) thì không cho
+        // login
+        if (Boolean.FALSE.equals(user.getIsActive())) {
             throw new UnauthorizedAccessException("Account is not active. Please contact admin.");
         }
 
         try {
             // 3. Dùng authenticationManager để authenticate
-            Authentication authentication = authenticationManager.authenticate(
+            authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
-                            request.getPassword()
-                    )
-            );
+                            request.getPassword()));
 
             // 4. Nếu đúng mật khẩu: Reset failedAttempt và generate token
             user.setFailedAttempt(0);
@@ -179,7 +178,8 @@ public class AuthServiceImpl implements AuthService {
                 user.setLockTime(LocalDateTime.now());
                 user.setIsActive(false);
                 userRepository.save(user);
-                throw new UnauthorizedAccessException("Account locked due to too many failed login attempts. Please try again after 30 minutes.");
+                throw new UnauthorizedAccessException(
+                        "Account locked due to too many failed login attempts. Please try again after 30 minutes.");
             }
 
             userRepository.save(user);

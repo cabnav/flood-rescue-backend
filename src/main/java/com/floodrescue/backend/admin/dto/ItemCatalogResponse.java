@@ -21,7 +21,7 @@ public class ItemCatalogResponse {
                 item.getName(),
                 item.getItemType(),
                 item.getCapacity(),
-                item.getStatus()
+                item.getStatus() != null ? item.getStatus().name() : null
         );
     }
 }

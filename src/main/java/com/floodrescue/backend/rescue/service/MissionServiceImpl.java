@@ -7,8 +7,18 @@ import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.common.exception.UnauthorizedAccessException;
+import com.floodrescue.backend.manager.model.Inventory;
+import com.floodrescue.backend.manager.model.MissionSupply;
+import com.floodrescue.backend.manager.model.MissionVehicle;
+import com.floodrescue.backend.manager.model.Vehicle;
+import com.floodrescue.backend.manager.repository.InventoryRepository;
+import com.floodrescue.backend.manager.repository.MissionSupplyRepository;
+import com.floodrescue.backend.manager.repository.MissionVehicleRepository;
+import com.floodrescue.backend.manager.repository.VehicleRepository;
 import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
+import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
+import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
@@ -24,9 +34,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -41,6 +51,11 @@ public class MissionServiceImpl implements MissionService {
     private final MissionAssignmentRepository missionAssignmentRepository;
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final VehicleRepository vehicleRepository;
+    private final MissionVehicleRepository missionVehicleRepository;
+    private final InventoryRepository inventoryRepository;
+    private final MissionSupplyRepository missionSupplyRepository;
+
 
     @Override
     public MissionDetailResponse createMission(Integer requestId) {
@@ -93,6 +108,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    @Transactional
     public MissionDetailResponse updateMissionStatus(Integer id, MissionStatusUpdateRequest request) {
         if (request == null || request.getStatus() == null) {
             throw new BadRequestException("Cần có thông tin xác thực.");
@@ -118,6 +134,11 @@ public class MissionServiceImpl implements MissionService {
         }
 
         Mission saved = missionRepository.save(mission);
+
+        if (newStatus == Mission.MissionStatus.COMPLETED) {
+            releaseVehiclesForMission(saved);
+        }
+
         return mapToResponse(saved);
     }
 
@@ -128,7 +149,8 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new UnauthorizedAccessException("Người dùng không thuộc bất kỳ đội cứu hộ nào."));
 
         List<MissionAssignment> assignments = missionAssignmentRepository
-                .findByRescueTeam_IdAndStatus(teamMember.getRescueTeam().getId(), MissionAssignment.AssignmentStatus.PENDING);
+                .findByRescueTeam_IdAndStatus(teamMember.getRescueTeam().getId(),
+                        MissionAssignment.AssignmentStatus.PENDING);
 
         return assignments.stream()
                 .map(this::mapToAssignedMissionResponse)
@@ -136,7 +158,8 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
-    public MissionDetailResponse respondToMissionAssignment(Integer assignmentId, MissionAssignmentResponseRequest request) {
+    public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
+            MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
             throw new BadRequestException("Cần phải đưa ra quyết định.");
         }
@@ -159,11 +182,11 @@ public class MissionServiceImpl implements MissionService {
 
         String decision = request.getDecision().toUpperCase(Locale.ROOT);
         switch (decision) {
-            case "ACCEPT":
+            case "ACCEPTED":
                 assignment.setStatus(MissionAssignment.AssignmentStatus.ACCEPTED);
                 assignment.setDeclineReason(null);
                 break;
-            case "DECLINE":
+            case "DECLINED":
                 if (request.getReason() == null || request.getReason().isBlank()) {
                     throw new BadRequestException("Cần nêu lý do từ chối");
                 }
@@ -186,6 +209,95 @@ public class MissionServiceImpl implements MissionService {
         }
 
         return mapToResponse(mission);
+    }
+
+    // =====================================================================
+    // Feature 2: Vehicle Dispatch — Assign a vehicle to a mission
+    // =====================================================================
+    @Override
+    @Transactional
+    public MissionDetailResponse assignVehicleToMission(Integer missionId, AssignVehicleRequest request) {
+        // 1. Fetch Mission
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với id: " + missionId));
+
+        // 2. Fetch Vehicle
+        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy phương tiện với id: " + request.getVehicleId()));
+
+        // 3. Check vehicle availability
+        if (vehicle.getStatus() != Vehicle.VehicleStatus.AVAILABLE) {
+            throw new BadRequestException("Phương tiện này đang bận hoặc bảo trì");
+        }
+
+        // 4. Update vehicle status to IN_USE
+        vehicle.setStatus(Vehicle.VehicleStatus.IN_USE);
+        vehicleRepository.save(vehicle);
+
+        // 5. Create MissionVehicle junction record
+        MissionVehicle missionVehicle = new MissionVehicle();
+        missionVehicle.setMission(mission);
+        missionVehicle.setVehicle(vehicle);
+        missionVehicleRepository.save(missionVehicle);
+
+        return mapToResponse(mission);
+    }
+
+    // =====================================================================
+    // Feature 3: Inventory Deduction — Assign supplies to a mission
+    // =====================================================================
+    @Override
+    @Transactional
+    public MissionDetailResponse assignSuppliesToMission(Integer missionId, AssignSuppliesRequest request) {
+        // 1. Fetch Mission
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với id: " + missionId));
+
+        // 2. Fetch Inventory
+        Inventory inventory = inventoryRepository.findById(request.getInventoryId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy tồn kho với id: " + request.getInventoryId()));
+
+        // 2b. Guard: item must be ACTIVE
+        if (inventory.getItem() != null
+                && inventory.getItem().getStatus() == com.floodrescue.backend.manager.model.Item.ItemStatus.INACTIVE) {
+            throw new BadRequestException("Vật phẩm này hiện không hoạt động, không thể gán vào nhiệm vụ");
+        }
+
+        // 3. Check sufficient stock
+        if (request.getQuantity() > inventory.getQuantity()) {
+            throw new BadRequestException("Không đủ tồn kho");
+        }
+
+        // 4. Deduct quantity from inventory
+        inventory.setQuantity(inventory.getQuantity() - request.getQuantity());
+        inventory.setLastUpdate(LocalDateTime.now());
+        inventoryRepository.save(inventory);
+
+        // 5. Create MissionSupply junction record
+        MissionSupply missionSupply = new MissionSupply();
+        missionSupply.setMission(mission);
+        missionSupply.setInventory(inventory);
+        missionSupply.setQuantity(request.getQuantity());
+        missionSupplyRepository.save(missionSupply);
+
+        return mapToResponse(mission);
+    }
+
+    // =====================================================================
+    // Private helper methods
+    // =====================================================================
+
+    private void releaseVehiclesForMission(Mission mission) {
+        List<MissionVehicle> missionVehicles = missionVehicleRepository.findByMissionId(mission.getId());
+        for (MissionVehicle mv : missionVehicles) {
+            Vehicle vehicle = mv.getVehicle();
+            if (vehicle != null && vehicle.getStatus() == Vehicle.VehicleStatus.IN_USE) {
+                vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
+                vehicleRepository.save(vehicle);
+            }
+        }
     }
 
     private MissionDetailResponse mapToResponse(Mission mission) {
@@ -246,4 +358,3 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
     }
 }
-

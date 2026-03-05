@@ -25,12 +25,18 @@ public class Item {
     @Column(name = "capacity")
     private String capacity;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private ItemStatus status;
 
     public enum ItemType {
         FOOD,
         DRINK,
         MEDICAL_SUPPLIES
+    }
+
+    public enum ItemStatus {
+        ACTIVE,
+        INACTIVE
     }
 }

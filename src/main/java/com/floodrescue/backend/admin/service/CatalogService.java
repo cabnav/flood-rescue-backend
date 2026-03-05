@@ -30,7 +30,7 @@ public class CatalogService {
     }
 
     public List<ItemCatalogResponse> getActiveItems() {
-        return itemRepository.findByStatus("ACTIVE").stream()
+        return itemRepository.findByStatus(Item.ItemStatus.ACTIVE).stream()
                 .map(ItemCatalogResponse::from)
                 .toList();
     }
@@ -46,7 +46,9 @@ public class CatalogService {
         item.setName(request.getName());
         item.setItemType(request.getItemType());
         item.setCapacity(request.getCapacity());
-        item.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE");
+        item.setStatus(request.getStatus() != null
+                ? Item.ItemStatus.valueOf(request.getStatus().toUpperCase())
+                : Item.ItemStatus.ACTIVE);
         item = itemRepository.save(item);
         return ItemCatalogResponse.from(item);
     }
@@ -58,7 +60,7 @@ public class CatalogService {
         item.setItemType(request.getItemType());
         item.setCapacity(request.getCapacity());
         if (request.getStatus() != null) {
-            item.setStatus(request.getStatus());
+            item.setStatus(Item.ItemStatus.valueOf(request.getStatus().toUpperCase()));
         }
         item = itemRepository.save(item);
         return ItemCatalogResponse.from(item);
