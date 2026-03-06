@@ -1,5 +1,6 @@
 package com.floodrescue.backend.citizen.service;
 
+import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
 import com.floodrescue.backend.citizen.model.Request;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,28 +31,28 @@ public class RequestServiceImpl implements RequestService {
     private final NotificationRepository notificationRepository;
 
     @Override
-    public RequestDetailResponse createRequest(CreateRequestRequest request) {
+    public RequestDetailResponse createRescue(CreateRequestRequest request) {
         // 1. Get UserID from SecurityContextHolder
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
-            throw new BadRequestException("User not authenticated");
+            throw new BadRequestException("Người dùng chưa được xác thực");
         }
 
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         Integer userId = user.getId();
 
-        // 2. Check Active SOS: Check if user has any request with status CREATED or IN_PROGRESS
+        // 2. Check Active SOS: Only block if user already has an active RESCUE request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-                Request.RequestStatus.CREATED,
-                Request.RequestStatus.IN_PROGRESS
-        );
-        List<Request> activeRequests = requestRepository.findByUserIdAndStatusIn(userId, activeStatuses);
+                Request.RequestStatus.PENDING ,
+                Request.RequestStatus.IN_PROGRESS);
+        List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
+                userId, activeStatuses, Request.RequestType.RESCUE);
 
         if (!activeRequests.isEmpty()) {
-            throw new BadRequestException("Bạn đang có một yêu cầu SOS chưa hoàn thành");
+            throw new BadRequestException("Bạn đã có yêu cầu Cứu hộ đang xử lý");
         }
 
         // 3. Create new Request with default values
@@ -58,9 +60,8 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setUser(user);
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
-        // Default values (priority: dùng từ request nếu có, không thì HIGH để tránh lỗi DB constraint requests_priority_check)
-        newRequest.setStatus(Request.RequestStatus.CREATED);
-        newRequest.setPriority(request.getPriority() != null ? request.getPriority() : Request.Priority.HIGH);
+        newRequest.setStatus(Request.RequestStatus.PENDING);
+        newRequest.setPriority(null);
         newRequest.setRequestType(Request.RequestType.RESCUE);
 
         // 4. Save latitude, longitude, and description from request
@@ -70,13 +71,91 @@ public class RequestServiceImpl implements RequestService {
 
         // Optional fields
         newRequest.setRequestSupplies(request.getRequestSupplies());
-        newRequest.setRequestMedia(request.getRequestMedia());
 
         // 5. Save to database
         Request savedRequest = requestRepository.save(newRequest);
 
         // 6. Map to response DTO
         return mapToResponse(savedRequest);
+    }
+
+    @Override
+    public RequestDetailResponse createRelief(CreateRequestRequest request) {
+        // 1. Get UserID from SecurityContextHolder
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new BadRequestException("Người dùng chưa được xác thực");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+
+        Integer userId = user.getId();
+
+        // 2. Check Active SOS: Only block if user already has an active RELIEF request
+        List<Request.RequestStatus> activeStatuses = Arrays.asList(
+                Request.RequestStatus.PENDING ,
+                Request.RequestStatus.IN_PROGRESS);
+        List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
+                userId, activeStatuses, Request.RequestType.RELIEF);
+
+        if (!activeRequests.isEmpty()) {
+            throw new BadRequestException("Bạn đã có yêu cầu Tiếp tế đang xử lý");
+        }
+
+        // 3. Create new Request with default values
+        Request newRequest = new Request();
+        newRequest.setUser(user);
+        newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
+
+        newRequest.setStatus(Request.RequestStatus.PENDING);
+        newRequest.setPriority(null);
+        newRequest.setRequestType(Request.RequestType.RELIEF);
+
+        // 4. Save latitude, longitude, and description from request
+        newRequest.setLatitude(request.getLatitude());
+        newRequest.setLongitude(request.getLongitude());
+        newRequest.setDescription(request.getDescription());
+
+        // Optional fields
+        newRequest.setRequestSupplies(request.getRequestSupplies());
+
+        // 5. Save to database
+        Request savedRequest = requestRepository.save(newRequest);
+
+        // 6. Map to response DTO
+        return mapToResponse(savedRequest);
+    }
+
+    @Override
+    @Transactional
+    public RequestDetailResponse classifyRequest(Integer id, ClassifyRequestRequest requestBody) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
+
+        // Guard: cannot classify completed or cancelled requests
+        if (request.getStatus() == Request.RequestStatus.COMPLETED
+                || request.getStatus() == Request.RequestStatus.CANCELLED) {
+            throw new IllegalStateException("Không thể phân loại yêu cầu đã đóng");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new BadRequestException("Người dùng chưa được xác thực");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email: " + email));
+
+        request.setPriority(requestBody.getPriority());
+        request.setRequestType(requestBody.getRequestType());
+        request.setClassifiedAt(LocalDateTime.now());
+        request.setClassifiedBy(user);
+
+        Request saved = requestRepository.save(request);
+        return mapToResponse(saved);
     }
 
     private RequestDetailResponse mapToResponse(Request request) {
