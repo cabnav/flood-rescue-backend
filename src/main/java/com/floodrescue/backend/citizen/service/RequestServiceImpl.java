@@ -3,10 +3,12 @@ package com.floodrescue.backend.citizen.service;
 import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
+import com.floodrescue.backend.citizen.dto.RequestMediaResponse;
 import com.floodrescue.backend.citizen.model.Request;
-import com.floodrescue.backend.citizen.repository.RequestRepository;
+import com.floodrescue.backend.citizen.model.RequestMedia;
 import com.floodrescue.backend.auth.model.User;
 import com.floodrescue.backend.auth.repository.UserRepository;
+import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.admin.model.Notification;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -170,23 +173,40 @@ public class RequestServiceImpl implements RequestService {
         response.setPriority(request.getPriority());
         response.setStatus(request.getStatus());
         response.setRequestSupplies(request.getRequestSupplies());
-        response.setRequestMedia(request.getRequestMedia());
         response.setCreatedAt(request.getCreatedAt());
+        response.setMedias(mapToMediaResponses(request.getMedias()));
         return response;
+    }
+
+    private List<RequestMediaResponse> mapToMediaResponses(List<RequestMedia> medias) {
+        if (medias == null || medias.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return medias.stream()
+                .map(media -> RequestMediaResponse.builder()
+                        .id(media.getId())
+                        .mediaUrl(media.getMediaUrl())
+                        .mediaType(media.getMediaType() != null ? media.getMediaType().name() : null)
+                        .fileSize(media.getFileSize())
+                        .mimeType(media.getMimeType())
+                        .createdAt(media.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public RequestDetailResponse getRequestById(Integer id) {
-        Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        Request request = requestRepository.findByIdWithMedias(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
         return mapToResponse(request);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RequestDetailResponse> getAllRequests() {
-        return requestRepository.findAll()
+        return requestRepository.findAllWithMedias()
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -195,7 +215,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     @Transactional(readOnly = true)
     public List<RequestDetailResponse> getRequestsByUserId(Integer userId) {
-        return requestRepository.findByUserId(userId)
+        return requestRepository.findByUserIdWithMedias(userId)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

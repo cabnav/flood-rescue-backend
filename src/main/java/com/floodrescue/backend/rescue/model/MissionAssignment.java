@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "mission_assignments")
@@ -27,7 +28,7 @@ public class MissionAssignment {
     private RescueTeam rescueTeam;
 
     @Column(name = "assigned_time")
-    private LocalDateTime assignedTime;
+    private LocalTime assignedTime;
 
     @Column(name = "mission_role")
     private String missionRole;

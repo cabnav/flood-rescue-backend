@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -22,6 +23,6 @@ public class RequestDetailResponse {
     private Request.Priority priority;
     private Request.RequestStatus status;
     private String requestSupplies;
-    private String requestMedia;
     private LocalDateTime createdAt;
+    private List<RequestMediaResponse> medias;
 }

@@ -3,13 +3,17 @@ package com.floodrescue.backend.citizen.controller;
 import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
+import com.floodrescue.backend.citizen.dto.RequestMediaResponse;
+import com.floodrescue.backend.citizen.service.RequestMediaService;
 import com.floodrescue.backend.citizen.service.RequestService;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -19,6 +23,8 @@ import java.util.List;
 public class RequestController {
 
     private final RequestService requestService;
+    private final RequestMediaService requestMediaService;
+
 
     @PostMapping("/rescue")
     @PreAuthorize("hasRole('CITIZEN')")
@@ -78,6 +84,19 @@ public class RequestController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping(
+            value = "/{requestId}/media",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<RequestMediaResponse>> uploadMedia(
+            @PathVariable Integer requestId,
+            @RequestParam MultipartFile file) {
+
+        RequestMediaResponse response = requestMediaService.uploadMedia(requestId, file);
+
+        return ResponseEntity.ok(ApiResponse.success("Media uploaded successfully", response));
+    }
     @PutMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM')")
     public ResponseEntity<ApiResponse<RequestDetailResponse>> cancelRequest(

@@ -37,5 +37,4 @@ public class CreateRequestRequest {
     private Request.Priority priority;
 
     private String requestSupplies;
-    private String requestMedia;
 }
