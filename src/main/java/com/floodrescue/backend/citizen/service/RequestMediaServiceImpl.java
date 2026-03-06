@@ -1,5 +1,6 @@
 package com.floodrescue.backend.citizen.service;
 
+import com.floodrescue.backend.citizen.dto.RequestMediaResponse;
 import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.model.RequestMedia;
 import com.floodrescue.backend.citizen.repository.RequestMediaRepository;
@@ -31,7 +32,7 @@ public class RequestMediaServiceImpl implements RequestMediaService {
     private String publicBaseUrl;
 
     @Override
-    public String uploadMedia(Integer requestId, MultipartFile file) {
+    public RequestMediaResponse uploadMedia(Integer requestId, MultipartFile file) {
 
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Yêu cầu không tìm thấy"));
@@ -96,8 +97,15 @@ public class RequestMediaServiceImpl implements RequestMediaService {
                 .mimeType(file.getContentType())
                 .build();
 
-        requestMediaRepository.save(media);
+        RequestMedia saved = requestMediaRepository.save(media);
 
-        return fileUrl;
+        return RequestMediaResponse.builder()
+                .id(saved.getId())
+                .mediaUrl(saved.getMediaUrl())
+                .mediaType(saved.getMediaType() != null ? saved.getMediaType().name() : null)
+                .fileSize(saved.getFileSize())
+                .mimeType(saved.getMimeType())
+                .createdAt(saved.getCreatedAt())
+                .build();
     }
 }
