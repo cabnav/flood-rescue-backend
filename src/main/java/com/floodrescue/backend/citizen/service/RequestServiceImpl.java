@@ -48,7 +48,7 @@ public class RequestServiceImpl implements RequestService {
 
         // 2. Check Active SOS: Only block if user already has an active RESCUE request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-                Request.RequestStatus.CREATED,
+                Request.RequestStatus.PENDING,
                 Request.RequestStatus.IN_PROGRESS);
         List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
                 userId, activeStatuses, Request.RequestType.RESCUE);
@@ -62,7 +62,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setUser(user);
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
-        newRequest.setStatus(Request.RequestStatus.CREATED);
+        newRequest.setStatus(Request.RequestStatus.PENDING);
         newRequest.setPriority(null);
         newRequest.setRequestType(Request.RequestType.RESCUE);
 
@@ -98,7 +98,7 @@ public class RequestServiceImpl implements RequestService {
 
         // 2. Check Active SOS: Only block if user already has an active RELIEF request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-                Request.RequestStatus.CREATED,
+                Request.RequestStatus.PENDING,
                 Request.RequestStatus.IN_PROGRESS);
         List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
                 userId, activeStatuses, Request.RequestType.RELIEF);
@@ -112,7 +112,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setUser(user);
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
-        newRequest.setStatus(Request.RequestStatus.CREATED);
+        newRequest.setStatus(Request.RequestStatus.PENDING);
         newRequest.setPriority(null);
         newRequest.setRequestType(Request.RequestType.RELIEF);
 

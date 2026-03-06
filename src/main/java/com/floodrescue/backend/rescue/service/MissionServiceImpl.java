@@ -30,6 +30,7 @@ import com.floodrescue.backend.rescue.repository.MissionAssignmentRepository;
 import com.floodrescue.backend.rescue.repository.MissionRepository;
 import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
 import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
+import com.floodrescue.backend.admin.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -55,6 +56,7 @@ public class MissionServiceImpl implements MissionService {
     private final MissionVehicleRepository missionVehicleRepository;
     private final InventoryRepository inventoryRepository;
     private final MissionSupplyRepository missionSupplyRepository;
+    private final NotificationService notificationService;
 
 
     @Override
@@ -118,6 +120,10 @@ public class MissionServiceImpl implements MissionService {
         Mission mission = missionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Mission not found with id: " + id));
 
+        User actor = getCurrentUser();
+        boolean actorIsRescueTeam = hasRole(actor, "RESCUE_TEAM");
+        boolean actorIsCoordinator = hasRole(actor, "RESCUE_COORDINATOR");
+
         Mission.MissionStatus newStatus;
         try {
             newStatus = Mission.MissionStatus.valueOf(request.getStatus().toUpperCase(Locale.ROOT));
@@ -125,19 +131,44 @@ public class MissionServiceImpl implements MissionService {
             throw new BadRequestException("Invalid mission status: " + request.getStatus());
         }
 
+        Request linkedRequest = requestRepository.findById(mission.getRequest().getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Request not found with id: " + mission.getRequest().getId()));
+
+        LocalDateTime now = LocalDateTime.now();
         mission.setStatus(newStatus);
         if (newStatus == Mission.MissionStatus.IN_PROGRESS && mission.getStartTime() == null) {
-            mission.setStartTime(LocalDateTime.now());
+            mission.setStartTime(now);
+            linkedRequest.setStatus(Request.RequestStatus.IN_PROGRESS);
+        }
+        if (newStatus == Mission.MissionStatus.ASSIGNED) {
+            linkedRequest.setStatus(Request.RequestStatus.ASSIGNED);
+        }
+        if (newStatus == Mission.MissionStatus.ARRIVED) {
+            linkedRequest.setStatus(Request.RequestStatus.ARRIVED);
         }
         if ((newStatus == Mission.MissionStatus.COMPLETED || newStatus == Mission.MissionStatus.CANCELLED)
                 && mission.getEndTime() == null) {
-            mission.setEndTime(LocalDateTime.now());
+            mission.setEndTime(now);
+        }
+        if (newStatus == Mission.MissionStatus.CANCELLED) {
+            linkedRequest.setStatus(Request.RequestStatus.CANCELLED);
+        }
+        if (newStatus == Mission.MissionStatus.COMPLETED && actorIsCoordinator) {
+            linkedRequest.setStatus(Request.RequestStatus.COMPLETED);
         }
 
         Mission saved = missionRepository.save(mission);
 
         if (newStatus == Mission.MissionStatus.COMPLETED) {
             releaseVehiclesForMission(saved);
+            if (actorIsCoordinator) {
+                notifyCitizenCompletion(linkedRequest, saved);
+            } else if (actorIsRescueTeam) {
+                notifyCoordinatorsForCompletion(saved, linkedRequest);
+            }
+        } else if (actorIsRescueTeam) {
+            notifyCitizen(linkedRequest, newStatus);
         }
 
         return mapToResponse(saved);
@@ -357,5 +388,45 @@ public class MissionServiceImpl implements MissionService {
         String email = authentication.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private boolean hasRole(User user, String roleName) {
+        return user != null
+                && user.getRole() != null
+                && roleName.equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private void notifyCitizen(Request request, Mission.MissionStatus status) {
+        if (request == null || request.getUser() == null) {
+            return;
+        }
+        String message = "Yêu cầu SOS #" + request.getId() + " đã được cập nhật trạng thái nhiệm vụ: " + status;
+        sendNotification(request.getUser(), message);
+    }
+
+    private void notifyCoordinatorsForCompletion(Mission mission, Request request) {
+        List<User> coordinators = userRepository.findByRole_NameIgnoreCaseAndIsActiveTrue("RESCUE_COORDINATOR");
+        if (coordinators == null || coordinators.isEmpty()) {
+            return;
+        }
+        String message = "Nhiệm vụ #" + mission.getId() + " cho yêu cầu SOS #" + request.getId()
+                + " đã được đội cứu hộ báo hoàn thành. Vui lòng duyệt hoàn tất nhiệm vụ.";
+        coordinators.forEach(coordinator -> sendNotification(coordinator, message));
+    }
+
+    private void notifyCitizenCompletion(Request request, Mission mission) {
+        if (request == null || request.getUser() == null) {
+            return;
+        }
+        String message = "Yêu cầu SOS #" + request.getId() + " đã được xác nhận hoàn tất (nhiệm vụ #"
+                + mission.getId() + ").";
+        sendNotification(request.getUser(), message);
+    }
+
+    private void sendNotification(User user, String message) {
+        if (user == null || message == null || message.isBlank()) {
+            return;
+        }
+        notificationService.create(user.getId(), message);
     }
 }

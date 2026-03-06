@@ -78,8 +78,10 @@ public class Request {
     }
 
     public enum RequestStatus {
-        CREATED,
+        PENDING,
+        ASSIGNED,
         IN_PROGRESS,
+        ARRIVED,
         COMPLETED,
         CANCELLED
     }
