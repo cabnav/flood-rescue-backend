@@ -3,6 +3,7 @@ package com.floodrescue.backend.citizen.controller;
 import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
+import com.floodrescue.backend.citizen.dto.RequestMediaResponse;
 import com.floodrescue.backend.citizen.service.RequestMediaService;
 import com.floodrescue.backend.citizen.service.RequestService;
 import com.floodrescue.backend.common.dto.ApiResponse;
@@ -88,13 +89,13 @@ public class RequestController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> uploadMedia(
+    public ResponseEntity<ApiResponse<RequestMediaResponse>> uploadMedia(
             @PathVariable Integer requestId,
             @RequestParam MultipartFile file) {
 
-        requestMediaService.uploadMedia(requestId, file);
+        RequestMediaResponse response = requestMediaService.uploadMedia(requestId, file);
 
-        return ResponseEntity.ok("Upload successful");
+        return ResponseEntity.ok(ApiResponse.success("Media uploaded successfully", response));
     }
     @PutMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'RESCUE_TEAM')")
