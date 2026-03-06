@@ -13,7 +13,6 @@ import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.admin.model.Notification;
 import com.floodrescue.backend.admin.repository.NotificationRepository;
-import com.floodrescue.backend.rescue.service.MissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,7 +32,6 @@ public class RequestServiceImpl implements RequestService {
     private final RequestRepository requestRepository;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
-    private final MissionService missionService;
 
     @Override
     public RequestDetailResponse createRescue(CreateRequestRequest request) {
@@ -51,7 +49,7 @@ public class RequestServiceImpl implements RequestService {
 
         // 2. Check Active SOS: Only block if user already has an active RESCUE request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-                Request.RequestStatus.CREATED,
+                Request.RequestStatus.PENDING ,
                 Request.RequestStatus.IN_PROGRESS);
         List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
                 userId, activeStatuses, Request.RequestType.RESCUE);
@@ -65,7 +63,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setUser(user);
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
-        newRequest.setStatus(Request.RequestStatus.CREATED);
+        newRequest.setStatus(Request.RequestStatus.PENDING);
         newRequest.setPriority(null);
         newRequest.setRequestType(Request.RequestType.RESCUE);
 
@@ -100,7 +98,7 @@ public class RequestServiceImpl implements RequestService {
 
         // 2. Check Active SOS: Only block if user already has an active RELIEF request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-                Request.RequestStatus.CREATED,
+                Request.RequestStatus.PENDING ,
                 Request.RequestStatus.IN_PROGRESS);
         List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
                 userId, activeStatuses, Request.RequestType.RELIEF);
@@ -114,7 +112,7 @@ public class RequestServiceImpl implements RequestService {
         newRequest.setUser(user);
         newRequest.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhoneNumber());
 
-        newRequest.setStatus(Request.RequestStatus.CREATED);
+        newRequest.setStatus(Request.RequestStatus.PENDING);
         newRequest.setPriority(null);
         newRequest.setRequestType(Request.RequestType.RELIEF);
 
@@ -227,18 +225,18 @@ public class RequestServiceImpl implements RequestService {
     @Transactional
     public RequestDetailResponse updateRequestStatus(Integer id, String status) {
         if (status == null || status.isBlank()) {
-            throw new BadRequestException("Trạng thái không được để trống");
+            throw new BadRequestException("Status must not be empty");
         }
 
         Request.RequestStatus newStatus;
         try {
             newStatus = Request.RequestStatus.valueOf(status.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new BadRequestException("Trạng thái không hợp lệ: " + status);
+            throw new BadRequestException("Invalid status: " + status);
         }
 
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
 
         if (newStatus == request.getStatus()) {
             return mapToResponse(request);
@@ -249,32 +247,23 @@ public class RequestServiceImpl implements RequestService {
 
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());
-        notification.setMessage("Yêu cầu SOS #" + savedRequest.getId() + " đã được cập nhật trạng thái: " + newStatus);
+        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
         notificationRepository.save(notification);
         return mapToResponse(savedRequest);
     }
 
     @Override
-    @Transactional
     public RequestDetailResponse approveRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
-
-        if (request.getStatus() == Request.RequestStatus.COMPLETED
-                || request.getStatus() == Request.RequestStatus.CANCELLED) {
-            throw new BadRequestException("Không thể duyệt yêu cầu đã hoàn tất hoặc đã hủy");
-        }
-
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
         Request.RequestStatus newStatus = Request.RequestStatus.IN_PROGRESS;
 
         request.setStatus(newStatus);
         Request savedRequest = requestRepository.save(request);
 
-        missionService.createMission(savedRequest.getId());
-
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());
-        notification.setMessage("Yêu cầu SOS #" + savedRequest.getId() + " đã được cập nhật trạng thái: " + newStatus);
+        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
         notificationRepository.save(notification);
         return mapToResponse(savedRequest);
     }
@@ -282,7 +271,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public RequestDetailResponse cancelRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
         Request.RequestStatus newStatus = Request.RequestStatus.CANCELLED;
 
         request.setStatus(newStatus);
@@ -290,9 +279,8 @@ public class RequestServiceImpl implements RequestService {
 
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());
-        notification.setMessage("Yêu cầu SOS #" + savedRequest.getId() + " đã được cập nhật trạng thái: " + newStatus);
+        notification.setMessage("Your rescue request #" + savedRequest.getId() + " status is now " + newStatus);
         notificationRepository.save(notification);
         return mapToResponse(savedRequest);
     }
-
 }
