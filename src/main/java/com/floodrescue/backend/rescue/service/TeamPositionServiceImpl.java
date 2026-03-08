@@ -34,9 +34,9 @@ public class TeamPositionServiceImpl implements TeamPositionService {
     }
 
     private TeamPositionResponse mapToResponse(TeamPosition teamPosition) {
-        return new TeamPositionResponse(
-                teamPosition.getLatitude() != null ? BigDecimal.valueOf(teamPosition.getLatitude()) : null,
-                teamPosition.getLongitude() != null ? BigDecimal.valueOf(teamPosition.getLongitude()) : null
-        );
+        TeamPositionResponse response = new TeamPositionResponse();
+        response.setLatitude(teamPosition.getLatitude());
+        response.setLongitude(teamPosition.getLongitude());
+        return response;
     }
 }
