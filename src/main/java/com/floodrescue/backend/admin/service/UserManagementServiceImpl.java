@@ -7,6 +7,8 @@ import com.floodrescue.backend.auth.repository.UserRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;

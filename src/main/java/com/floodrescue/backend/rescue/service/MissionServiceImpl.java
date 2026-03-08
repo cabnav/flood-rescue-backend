@@ -30,6 +30,7 @@ import com.floodrescue.backend.rescue.repository.MissionAssignmentRepository;
 import com.floodrescue.backend.rescue.repository.MissionRepository;
 import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
 import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
+import com.floodrescue.backend.admin.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -55,11 +57,13 @@ public class MissionServiceImpl implements MissionService {
     private final MissionVehicleRepository missionVehicleRepository;
     private final InventoryRepository inventoryRepository;
     private final MissionSupplyRepository missionSupplyRepository;
+    private final NotificationService notificationService;
+
 
     @Override
     public MissionDetailResponse createMission(Integer requestId) {
         Request request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + requestId));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với ID: " + requestId));
 
         Mission mission = new Mission();
         mission.setRequest(request);
@@ -74,7 +78,7 @@ public class MissionServiceImpl implements MissionService {
     @Override
     public MissionDetailResponse getMissionById(Integer id) {
         Mission mission = missionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Mission not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + id));
         return mapToResponse(mission);
     }
 
@@ -88,16 +92,15 @@ public class MissionServiceImpl implements MissionService {
     @Override
     public MissionDetailResponse assignMission(Integer missionId, AssignMissionRequest request) {
         Mission mission = missionRepository.findById(missionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Mission not found with id: " + missionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + missionId));
 
         RescueTeam rescueTeam = rescueTeamRepository.findById(request.getRescueTeamId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Rescue team not found with id: " + request.getRescueTeamId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
 
         MissionAssignment assignment = new MissionAssignment();
         assignment.setMission(mission);
         assignment.setRescueTeam(rescueTeam);
-        assignment.setAssignedTime(LocalDateTime.now());
+        assignment.setAssignedTime(LocalTime.now());
         assignment.setMissionRole(request.getMissionRole());
         assignment.setStatus(MissionAssignment.AssignmentStatus.PENDING);
         missionAssignmentRepository.save(assignment);
@@ -111,32 +114,61 @@ public class MissionServiceImpl implements MissionService {
     @Transactional
     public MissionDetailResponse updateMissionStatus(Integer id, MissionStatusUpdateRequest request) {
         if (request == null || request.getStatus() == null) {
-            throw new BadRequestException("Status is required");
+            throw new BadRequestException("Cần có thông tin xác thực.");
         }
 
         Mission mission = missionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Mission not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + id));
+
+        User actor = getCurrentUser();
+        boolean actorIsRescueTeam = hasRole(actor, "RESCUE_TEAM");
+        boolean actorIsCoordinator = hasRole(actor, "RESCUE_COORDINATOR");
 
         Mission.MissionStatus newStatus;
         try {
             newStatus = Mission.MissionStatus.valueOf(request.getStatus().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new BadRequestException("Invalid mission status: " + request.getStatus());
+            throw new BadRequestException("Trạng thái nhiệm vụ không hợp lệ: " + request.getStatus());
         }
 
+        Request linkedRequest = requestRepository.findById(mission.getRequest().getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Request not found with id: " + mission.getRequest().getId()));
+
+        LocalDateTime now = LocalDateTime.now();
         mission.setStatus(newStatus);
         if (newStatus == Mission.MissionStatus.IN_PROGRESS && mission.getStartTime() == null) {
-            mission.setStartTime(LocalDateTime.now());
+            mission.setStartTime(now);
+            linkedRequest.setStatus(Request.RequestStatus.IN_PROGRESS);
+        }
+        if (newStatus == Mission.MissionStatus.ASSIGNED) {
+            linkedRequest.setStatus(Request.RequestStatus.ASSIGNED);
+        }
+        if (newStatus == Mission.MissionStatus.ARRIVED) {
+            linkedRequest.setStatus(Request.RequestStatus.ARRIVED);
         }
         if ((newStatus == Mission.MissionStatus.COMPLETED || newStatus == Mission.MissionStatus.CANCELLED)
                 && mission.getEndTime() == null) {
-            mission.setEndTime(LocalDateTime.now());
+            mission.setEndTime(now);
+        }
+        if (newStatus == Mission.MissionStatus.CANCELLED) {
+            linkedRequest.setStatus(Request.RequestStatus.CANCELLED);
+        }
+        if (newStatus == Mission.MissionStatus.COMPLETED && actorIsCoordinator) {
+            linkedRequest.setStatus(Request.RequestStatus.COMPLETED);
         }
 
         Mission saved = missionRepository.save(mission);
 
         if (newStatus == Mission.MissionStatus.COMPLETED) {
             releaseVehiclesForMission(saved);
+            if (actorIsCoordinator) {
+                notifyCitizenCompletion(linkedRequest, saved);
+            } else if (actorIsRescueTeam) {
+                notifyCoordinatorsForCompletion(saved, linkedRequest);
+            }
+        } else if (actorIsRescueTeam) {
+            notifyCitizen(linkedRequest, newStatus);
         }
 
         return mapToResponse(saved);
@@ -146,7 +178,7 @@ public class MissionServiceImpl implements MissionService {
     public List<AssignedMissionResponse> getMissionsAssignedToCurrentRescuer() {
         User currentUser = getCurrentUser();
         TeamMember teamMember = teamMemberRepository.findFirstByUser_Id(currentUser.getId())
-                .orElseThrow(() -> new UnauthorizedAccessException("User is not part of any rescue team"));
+                .orElseThrow(() -> new UnauthorizedAccessException("Người dùng không thuộc bất kỳ đội cứu hộ nào."));
 
         List<MissionAssignment> assignments = missionAssignmentRepository
                 .findByRescueTeam_IdAndStatus(teamMember.getRescueTeam().getId(),
@@ -161,40 +193,40 @@ public class MissionServiceImpl implements MissionService {
     public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
             MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
-            throw new BadRequestException("Decision is required");
+            throw new BadRequestException("Cần phải đưa ra quyết định.");
         }
 
         User currentUser = getCurrentUser();
         TeamMember teamMember = teamMemberRepository.findFirstByUser_Id(currentUser.getId())
-                .orElseThrow(() -> new UnauthorizedAccessException("User is not part of any rescue team"));
+                .orElseThrow(() -> new UnauthorizedAccessException("Người dùng không thuộc bất kỳ đội cứu hộ nào."));
 
         MissionAssignment assignment = missionAssignmentRepository.findById(assignmentId)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Mission assignment not found with id: " + assignmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ được giao với ID: " + assignmentId));
 
         if (!assignment.getRescueTeam().getId().equals(teamMember.getRescueTeam().getId())) {
-            throw new UnauthorizedAccessException("Mission is not assigned to your team");
+            throw new UnauthorizedAccessException("Nhiệm vụ này không được giao cho nhóm của bạn");
         }
 
         if (assignment.getStatus() != MissionAssignment.AssignmentStatus.PENDING) {
-            throw new BadRequestException("Assignment already responded");
+            throw new BadRequestException("\n" +
+                    "Phân công này đã được phản hồi");
         }
 
         String decision = request.getDecision().toUpperCase(Locale.ROOT);
         switch (decision) {
-            case "ACCEPT":
+            case "ACCEPTED":
                 assignment.setStatus(MissionAssignment.AssignmentStatus.ACCEPTED);
                 assignment.setDeclineReason(null);
                 break;
-            case "DECLINE":
+            case "DECLINED":
                 if (request.getReason() == null || request.getReason().isBlank()) {
-                    throw new BadRequestException("Decline reason is required");
+                    throw new BadRequestException("Cần nêu lý do từ chối");
                 }
                 assignment.setStatus(MissionAssignment.AssignmentStatus.DECLINED);
                 assignment.setDeclineReason(request.getReason());
                 break;
             default:
-                throw new BadRequestException("Invalid decision. Allowed values: ACCEPT or DECLINE");
+                throw new BadRequestException("Quyết định không hợp lệ. Các giá trị được cho phép: ACCEPTED hoặc DECLINED");
         }
 
         missionAssignmentRepository.save(assignment);
@@ -350,11 +382,51 @@ public class MissionServiceImpl implements MissionService {
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
-            throw new BadRequestException("User not authenticated");
+            throw new BadRequestException("Người dùng chưa được xác thực");
         }
 
         String email = authentication.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+    }
+
+    private boolean hasRole(User user, String roleName) {
+        return user != null
+                && user.getRole() != null
+                && roleName.equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private void notifyCitizen(Request request, Mission.MissionStatus status) {
+        if (request == null || request.getUser() == null) {
+            return;
+        }
+        String message = "Yêu cầu SOS #" + request.getId() + " đã được cập nhật trạng thái nhiệm vụ: " + status;
+        sendNotification(request.getUser(), message);
+    }
+
+    private void notifyCoordinatorsForCompletion(Mission mission, Request request) {
+        List<User> coordinators = userRepository.findByRole_NameIgnoreCaseAndIsActiveTrue("RESCUE_COORDINATOR");
+        if (coordinators == null || coordinators.isEmpty()) {
+            return;
+        }
+        String message = "Nhiệm vụ #" + mission.getId() + " cho yêu cầu SOS #" + request.getId()
+                + " đã được đội cứu hộ báo hoàn thành. Vui lòng duyệt hoàn tất nhiệm vụ.";
+        coordinators.forEach(coordinator -> sendNotification(coordinator, message));
+    }
+
+    private void notifyCitizenCompletion(Request request, Mission mission) {
+        if (request == null || request.getUser() == null) {
+            return;
+        }
+        String message = "Yêu cầu SOS #" + request.getId() + " đã được xác nhận hoàn tất (nhiệm vụ #"
+                + mission.getId() + ").";
+        sendNotification(request.getUser(), message);
+    }
+
+    private void sendNotification(User user, String message) {
+        if (user == null || message == null || message.isBlank()) {
+            return;
+        }
+        notificationService.create(user.getId(), message);
     }
 }

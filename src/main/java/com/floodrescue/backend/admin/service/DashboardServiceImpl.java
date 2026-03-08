@@ -28,7 +28,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         // --- Requests ---
         response.setTotalRequests(requestRepository.count());
-        response.setRequestsCreated(requestRepository.countByStatus(Request.RequestStatus.CREATED));
+        response.setRequestsCreated(requestRepository.countByStatus(Request.RequestStatus.PENDING));
         response.setRequestsInProgress(requestRepository.countByStatus(Request.RequestStatus.IN_PROGRESS));
         response.setRequestsCompleted(requestRepository.countByStatus(Request.RequestStatus.COMPLETED));
         response.setRequestsCancelled(requestRepository.countByStatus(Request.RequestStatus.CANCELLED));

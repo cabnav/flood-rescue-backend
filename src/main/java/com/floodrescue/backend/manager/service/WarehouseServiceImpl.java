@@ -45,6 +45,9 @@ public class WarehouseServiceImpl implements WarehouseService {
                         request.getStatus().toUpperCase()
                 )
         );
+        warehouse.setLatitude(request.getLatitude());
+        warehouse.setLongitude(request.getLongitude());
+        warehouse.setAddress(request.getAddress());
 
         Warehouse saved = warehouseRepository.save(warehouse);
         return mapToDetailResponse(saved);
@@ -164,6 +167,9 @@ public class WarehouseServiceImpl implements WarehouseService {
         response.setResourceId(warehouse.getResourceId());
         response.setSupplyId(warehouse.getSupplyId());
         response.setStatus(warehouse.getStatus());
+        response.setLatitude(warehouse.getLatitude());
+        response.setLongitude(warehouse.getLongitude());
+        response.setAddress(warehouse.getAddress());
         return response;
     }
 }
