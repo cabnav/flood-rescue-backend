@@ -14,6 +14,8 @@ import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.admin.model.Notification;
 import com.floodrescue.backend.admin.repository.NotificationRepository;
+import com.floodrescue.backend.rescue.repository.MissionRepository;
+import com.floodrescue.backend.rescue.service.MissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,6 +36,8 @@ public class RequestServiceImpl implements RequestService {
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
     private final FeedbackRepository feedbackRepository;
+    private final MissionService missionService;
+    private final MissionRepository missionRepository;
 
     @Override
     public RequestDetailResponse createRescue(CreateRequestRequest request) {
@@ -266,6 +270,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
+    @Transactional
     public RequestDetailResponse approveRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
@@ -273,6 +278,11 @@ public class RequestServiceImpl implements RequestService {
 
         request.setStatus(newStatus);
         Request savedRequest = requestRepository.save(request);
+
+        boolean missionExists = missionRepository.findByRequest_Id(savedRequest.getId()).isPresent();
+        if (!missionExists) {
+            missionService.createMission(savedRequest.getId());
+        }
 
         Notification notification = new Notification();
         notification.setUser(savedRequest.getUser());

@@ -19,8 +19,9 @@ public class RescueTeam {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private TeamStatus status;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
@@ -28,4 +29,10 @@ public class RescueTeam {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "warehouse_id")
     private Warehouse warehouse;
+
+    public enum TeamStatus {
+        ACTIVE,
+        BUSY,
+        INACTIVE
+    }
 }

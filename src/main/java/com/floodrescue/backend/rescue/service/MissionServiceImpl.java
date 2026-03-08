@@ -31,6 +31,8 @@ import com.floodrescue.backend.rescue.repository.MissionRepository;
 import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
 import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
 import com.floodrescue.backend.admin.service.NotificationService;
+import com.floodrescue.backend.rescue.model.Report;
+import com.floodrescue.backend.rescue.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -58,6 +60,7 @@ public class MissionServiceImpl implements MissionService {
     private final InventoryRepository inventoryRepository;
     private final MissionSupplyRepository missionSupplyRepository;
     private final NotificationService notificationService;
+    private final ReportRepository reportRepository;
 
 
     @Override
@@ -97,15 +100,24 @@ public class MissionServiceImpl implements MissionService {
         RescueTeam rescueTeam = rescueTeamRepository.findById(request.getRescueTeamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
 
+        RescueTeam.TeamStatus teamStatus = rescueTeam.getStatus();
+        if (teamStatus == RescueTeam.TeamStatus.BUSY || teamStatus == RescueTeam.TeamStatus.INACTIVE) {
+            throw new BadRequestException("Đội cứu hộ không sẵn sàng (BUSY/INACTIVE), không thể nhận nhiệm vụ mới");
+        }
+
         MissionAssignment assignment = new MissionAssignment();
         assignment.setMission(mission);
         assignment.setRescueTeam(rescueTeam);
         assignment.setAssignedTime(LocalTime.now());
         assignment.setMissionRole(request.getMissionRole());
-        assignment.setStatus(MissionAssignment.AssignmentStatus.PENDING);
+        assignment.setStatus(MissionAssignment.AssignmentStatus.ACCEPTED);
         missionAssignmentRepository.save(assignment);
 
+        rescueTeam.setStatus(RescueTeam.TeamStatus.BUSY);
+        rescueTeamRepository.save(rescueTeam);
+
         mission.setStatus(Mission.MissionStatus.ASSIGNED);
+        mission.setStartTime(LocalDateTime.now());
         Mission saved = missionRepository.save(mission);
         return mapToResponse(saved);
     }
@@ -131,6 +143,9 @@ public class MissionServiceImpl implements MissionService {
             throw new BadRequestException("Trạng thái nhiệm vụ không hợp lệ: " + request.getStatus());
         }
 
+        boolean completingNow = newStatus == Mission.MissionStatus.COMPLETED
+                && mission.getStatus() != Mission.MissionStatus.COMPLETED;
+
         Request linkedRequest = requestRepository.findById(mission.getRequest().getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Request not found with id: " + mission.getRequest().getId()));
@@ -140,9 +155,6 @@ public class MissionServiceImpl implements MissionService {
         if (newStatus == Mission.MissionStatus.IN_PROGRESS && mission.getStartTime() == null) {
             mission.setStartTime(now);
             linkedRequest.setStatus(Request.RequestStatus.IN_PROGRESS);
-        }
-        if (newStatus == Mission.MissionStatus.ASSIGNED) {
-            linkedRequest.setStatus(Request.RequestStatus.ASSIGNED);
         }
         if (newStatus == Mission.MissionStatus.ARRIVED) {
             linkedRequest.setStatus(Request.RequestStatus.ARRIVED);
@@ -161,7 +173,10 @@ public class MissionServiceImpl implements MissionService {
         Mission saved = missionRepository.save(mission);
 
         if (newStatus == Mission.MissionStatus.COMPLETED) {
-            releaseVehiclesForMission(saved);
+            if (completingNow) {
+                createCompletionReport(saved, actor, request);
+                releaseVehiclesForMission(saved);
+            }
             if (actorIsCoordinator) {
                 notifyCitizenCompletion(linkedRequest, saved);
             } else if (actorIsRescueTeam) {
@@ -182,16 +197,18 @@ public class MissionServiceImpl implements MissionService {
 
         List<MissionAssignment> assignments = missionAssignmentRepository
                 .findByRescueTeam_IdAndStatus(teamMember.getRescueTeam().getId(),
-                        MissionAssignment.AssignmentStatus.PENDING);
+                        MissionAssignment.AssignmentStatus.ACCEPTED);
 
         return assignments.stream()
+                .filter(a -> a.getMission() == null
+                        || a.getMission().getStatus() != Mission.MissionStatus.COMPLETED)
                 .map(this::mapToAssignedMissionResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
-            MissionAssignmentResponseRequest request) {
+                                                            MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
             throw new BadRequestException("Cần phải đưa ra quyết định.");
         }
@@ -431,5 +448,22 @@ public class MissionServiceImpl implements MissionService {
             return;
         }
         notificationService.create(user.getId(), message);
+    }
+
+    private void createCompletionReport(Mission mission, User reporter, MissionStatusUpdateRequest request) {
+        if (request.getPeopleRescued() == null || request.getPeopleRescued() < 0) {
+            throw new BadRequestException("Cần nhập số người được cứu (>=0) khi hoàn tất nhiệm vụ");
+        }
+        if (request.getSummary() == null || request.getSummary().isBlank()) {
+            throw new BadRequestException("Cần nhập tóm tắt sự cố khi hoàn tất nhiệm vụ");
+        }
+        Report report = new Report();
+        report.setMission(mission);
+        report.setUser(reporter);
+        report.setPeopleRescued(request.getPeopleRescued());
+        report.setSummary(request.getSummary());
+        report.setObstacles(request.getObstacles());
+        report.setCreatedAt(LocalDateTime.now());
+        reportRepository.save(report);
     }
 }
