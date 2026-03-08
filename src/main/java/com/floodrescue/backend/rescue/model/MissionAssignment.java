@@ -49,6 +49,9 @@ public class MissionAssignment {
     public enum AssignmentStatus {
         PENDING,
         ACCEPTED,
-        DECLINED
+        DECLINED,
+        COMPLETED,
+        FAILED,
+        CANCELLED
     }
 }

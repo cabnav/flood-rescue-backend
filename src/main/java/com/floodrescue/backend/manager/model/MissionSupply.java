@@ -26,4 +26,11 @@ public class MissionSupply {
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
+
+    /**
+     * Đã hoàn về kho chưa (khi mission FAILED/CANCELLED).
+     * Tránh hoàn trùng nhiều lần.
+     */
+    @Column(name = "returned", nullable = false)
+    private Boolean returned = false;
 }

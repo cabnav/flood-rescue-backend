@@ -42,4 +42,11 @@ public class ReliefDistribution {
 
     @Column(name = "is_confirmed", nullable = false)
     private Boolean isConfirmed = false;
+
+    /**
+     * Đã hoàn về kho chưa (khi mission FAILED/CANCELLED).
+     * Dùng cho flow assign supplies từ MissionServiceImpl.
+     */
+    @Column(name = "returned", nullable = false)
+    private Boolean returned = false;
 }
