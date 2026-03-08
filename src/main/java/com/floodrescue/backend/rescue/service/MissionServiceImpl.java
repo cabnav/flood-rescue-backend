@@ -136,9 +136,6 @@ public class MissionServiceImpl implements MissionService {
 
         boolean completingNow = newStatus == Mission.MissionStatus.COMPLETED
                 && mission.getStatus() != Mission.MissionStatus.COMPLETED;
-        if (completingNow) {
-            validateCompletionReport(request);
-        }
 
         Request linkedRequest = requestRepository.findById(mission.getRequest().getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -203,7 +200,7 @@ public class MissionServiceImpl implements MissionService {
 
     @Override
     public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
-            MissionAssignmentResponseRequest request) {
+                                                            MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
             throw new BadRequestException("Cần phải đưa ra quyết định.");
         }
@@ -445,16 +442,13 @@ public class MissionServiceImpl implements MissionService {
         notificationService.create(user.getId(), message);
     }
 
-    private void validateCompletionReport(MissionStatusUpdateRequest request) {
+    private void createCompletionReport(Mission mission, User reporter, MissionStatusUpdateRequest request) {
         if (request.getPeopleRescued() == null || request.getPeopleRescued() < 0) {
             throw new BadRequestException("Cần nhập số người được cứu (>=0) khi hoàn tất nhiệm vụ");
         }
         if (request.getSummary() == null || request.getSummary().isBlank()) {
             throw new BadRequestException("Cần nhập tóm tắt sự cố khi hoàn tất nhiệm vụ");
         }
-    }
-
-    private Report createCompletionReport(Mission mission, User reporter, MissionStatusUpdateRequest request) {
         Report report = new Report();
         report.setMission(mission);
         report.setUser(reporter);
@@ -462,6 +456,6 @@ public class MissionServiceImpl implements MissionService {
         report.setSummary(request.getSummary());
         report.setObstacles(request.getObstacles());
         report.setCreatedAt(LocalDateTime.now());
-        return reportRepository.save(report);
+        reportRepository.save(report);
     }
 }
