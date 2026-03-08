@@ -191,7 +191,11 @@ public class MissionServiceImpl implements MissionService {
 
         List<MissionAssignment> assignments = missionAssignmentRepository
                 .findByRescueTeam_IdAndStatus(teamMember.getRescueTeam().getId(),
-                        MissionAssignment.AssignmentStatus.PENDING);
+                        MissionAssignment.AssignmentStatus.ACCEPTED)
+                .stream()
+                .filter(assignment -> assignment.getMission() != null
+                        && assignment.getMission().getStatus() != Mission.MissionStatus.COMPLETED)
+                .toList();
 
         return assignments.stream()
                 .map(this::mapToAssignedMissionResponse)
