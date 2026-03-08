@@ -42,4 +42,7 @@ public class ReliefDistribution {
 
     @Column(name = "is_confirmed", nullable = false)
     private Boolean isConfirmed = false;
+
+    @Column(name = "returned", nullable = false)
+    private Boolean returned = false;
 }

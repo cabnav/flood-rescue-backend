@@ -30,6 +30,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -58,6 +59,7 @@ public class DataSeeder implements CommandLineRunner {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamPositionRepository teamPositionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     public DataSeeder(RoleRepository roleRepository,
             UserRepository userRepository,
@@ -72,7 +74,8 @@ public class DataSeeder implements CommandLineRunner {
             RescueTeamRepository rescueTeamRepository,
             TeamMemberRepository teamMemberRepository,
             TeamPositionRepository teamPositionRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            JdbcTemplate jdbcTemplate) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.requestRepository = requestRepository;
@@ -87,6 +90,7 @@ public class DataSeeder implements CommandLineRunner {
         this.teamMemberRepository = teamMemberRepository;
         this.teamPositionRepository = teamPositionRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     // =====================================================================
@@ -162,6 +166,24 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE relief_distributions CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE inventories CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE items CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE reports CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE missions CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE team_members CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE team_positions CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE rescue_teams CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE warehouses CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE requests CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE vehicles CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE users CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE roles CASCADE");
+        } catch (Exception e) {
+            System.out.println("Could not truncate tables: " + e.getMessage());
+        }
+
         seedRoles();
         seedUsers();
         seedRequests();
@@ -252,7 +274,7 @@ public class DataSeeder implements CommandLineRunner {
         request1.setLatitude(new BigDecimal("10.762622"));
         request1.setLongitude(new BigDecimal("106.660172"));
         request1.setDescription("Family of 4 trapped on rooftop, water level rising.");
-        request1.setPriority(Request.Priority.CRITICAL);
+        request1.setPriority(Request.Priority.NORMAL);
         request1.setStatus(Request.RequestStatus.PENDING);
         request1.setRequestSupplies("Life jackets, rope");
         request1.setCreatedAt(LocalDateTime.now().minusHours(1));
@@ -266,7 +288,7 @@ public class DataSeeder implements CommandLineRunner {
         request2.setLatitude(new BigDecimal("10.776889"));
         request2.setLongitude(new BigDecimal("106.700806"));
         request2.setDescription("Elderly couple stuck in flooded house, need evacuation.");
-        request2.setPriority(Request.Priority.HIGH);
+        request2.setPriority(Request.Priority.NORMAL);
         request2.setStatus(Request.RequestStatus.IN_PROGRESS);
         request2.setRequestSupplies("Boat, medical kit");
         request2.setCreatedAt(LocalDateTime.now().minusMinutes(45));
@@ -290,8 +312,8 @@ public class DataSeeder implements CommandLineRunner {
         if (admin != null) {
             request3.setClassifiedAt(LocalDateTime.now().minusMinutes(20));
             request3.setClassifiedBy(admin);
-            request3.setPriority(Request.Priority.LOW);
-            request3.setRequestType(Request.RequestType.OTHER);
+            request3.setPriority(Request.Priority.NORMAL);
+            request3.setRequestType(Request.RequestType.RELIEF);
         }
 
         requestRepository.save(request3);
