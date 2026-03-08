@@ -90,4 +90,11 @@ public class VehicleController {
         boolean isAvailable = vehicle.getStatus() == VehicleStatus.AVAILABLE;
         return ResponseEntity.ok(ApiResponse.success("Kiểm tra trạng thái phương tiện", isAvailable));
     }
+
+    @GetMapping("/any-available")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
+    public ResponseEntity<ApiResponse<Boolean>> checkAnyVehicleAvailable() {
+        boolean anyAvailable = vehicleService.isAnyVehicleAvailable();
+        return ResponseEntity.ok(ApiResponse.success("Kiểm tra còn phương tiện khả dụng", anyAvailable));
+    }
 }

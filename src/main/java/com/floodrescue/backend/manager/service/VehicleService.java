@@ -8,10 +8,18 @@ import java.util.List;
 
 public interface VehicleService {
     VehicleResponse createVehicle(VehicleRequest request);
+
     VehicleResponse getVehicleById(Integer id);
+
     List<VehicleResponse> getAllVehicles();
+
     VehicleResponse updateVehicle(Integer id, VehicleRequest request);
+
     void deleteVehicle(Integer id);
+
     VehicleResponse updateStatus(Integer id, Vehicle.VehicleStatus newStatus);
+
     List<VehicleResponse> getVehiclesByStatus(Vehicle.VehicleStatus status);
+
+    boolean isAnyVehicleAvailable();
 }

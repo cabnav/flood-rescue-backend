@@ -8,6 +8,7 @@ import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.model.RequestMedia;
 import com.floodrescue.backend.auth.model.User;
 import com.floodrescue.backend.auth.repository.UserRepository;
+import com.floodrescue.backend.admin.repository.FeedbackRepository;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
@@ -32,6 +33,7 @@ public class RequestServiceImpl implements RequestService {
     private final RequestRepository requestRepository;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final FeedbackRepository feedbackRepository;
 
     @Override
     public RequestDetailResponse createRescue(CreateRequestRequest request) {
@@ -49,7 +51,7 @@ public class RequestServiceImpl implements RequestService {
 
         // 2. Check Active SOS: Only block if user already has an active RESCUE request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-                Request.RequestStatus.PENDING ,
+                Request.RequestStatus.PENDING,
                 Request.RequestStatus.IN_PROGRESS);
         List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
                 userId, activeStatuses, Request.RequestType.RESCUE);
@@ -98,7 +100,7 @@ public class RequestServiceImpl implements RequestService {
 
         // 2. Check Active SOS: Only block if user already has an active RELIEF request
         List<Request.RequestStatus> activeStatuses = Arrays.asList(
-                Request.RequestStatus.PENDING ,
+                Request.RequestStatus.PENDING,
                 Request.RequestStatus.IN_PROGRESS);
         List<Request> activeRequests = requestRepository.findByUserIdAndStatusInAndRequestType(
                 userId, activeStatuses, Request.RequestType.RELIEF);
@@ -174,6 +176,17 @@ public class RequestServiceImpl implements RequestService {
         response.setStatus(request.getStatus());
         response.setRequestSupplies(request.getRequestSupplies());
         response.setCreatedAt(request.getCreatedAt());
+
+        boolean feedbackSubmitted = feedbackRepository.existsByRequestIdAndUserId(
+                request.getId(),
+                request.getUser().getId());
+        response.setFeedbackSubmitted(feedbackSubmitted);
+
+        boolean canGiveFeedback = request.getStatus() == Request.RequestStatus.COMPLETED
+                && request.getRequestType() != Request.RequestType.OTHER
+                && !feedbackSubmitted;
+        response.setCanGiveFeedback(canGiveFeedback);
+
         response.setMedias(mapToMediaResponses(request.getMedias()));
         return response;
     }
