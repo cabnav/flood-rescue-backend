@@ -24,6 +24,8 @@ import com.floodrescue.backend.rescue.repository.MissionRepository;
 import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
 import com.floodrescue.backend.rescue.repository.ReportRepository;
 import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
+import com.floodrescue.backend.rescue.model.TeamPosition;
+import com.floodrescue.backend.rescue.repository.TeamPositionRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +56,7 @@ public class DataSeeder implements CommandLineRunner {
     private final ReportRepository reportRepository;
     private final RescueTeamRepository rescueTeamRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamPositionRepository teamPositionRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(RoleRepository roleRepository,
@@ -67,6 +71,7 @@ public class DataSeeder implements CommandLineRunner {
             ReportRepository reportRepository,
             RescueTeamRepository rescueTeamRepository,
             TeamMemberRepository teamMemberRepository,
+            TeamPositionRepository teamPositionRepository,
             PasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -80,6 +85,7 @@ public class DataSeeder implements CommandLineRunner {
         this.reportRepository = reportRepository;
         this.rescueTeamRepository = rescueTeamRepository;
         this.teamMemberRepository = teamMemberRepository;
+        this.teamPositionRepository = teamPositionRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -151,7 +157,7 @@ public class DataSeeder implements CommandLineRunner {
             "quan12" // North
     );
 
-    private static final int TEAMS_PER_STRATEGIC_DISTRICT = 3;
+    private static final int TEAMS_PER_STRATEGIC_DISTRICT = 2;
     private static final int MEMBERS_PER_TEAM = 7;
 
     @Override
@@ -368,9 +374,14 @@ public class DataSeeder implements CommandLineRunner {
                     team.setStatus("ACTIVE");
                     team.setQuantity(MEMBERS_PER_TEAM);
                     team.setWarehouse(savedWarehouse);
-                    team.setLatitude(lat);
-                    team.setLongitude(lng);
                     RescueTeam savedTeam = rescueTeamRepository.save(team);
+
+                    TeamPosition position = new TeamPosition();
+                    position.setTeam(savedTeam);
+                    position.setLatitude(lat);
+                    position.setLongitude(lng);
+                    position.setRecordedAt(LocalTime.now());
+                    teamPositionRepository.save(position);
 
                     // --- Create 7 Team Members ---
                     for (int m = 1; m <= MEMBERS_PER_TEAM; m++) {

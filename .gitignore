@@ -41,8 +41,9 @@ build/
 ### Local Documentation & Reports ###
 *.md
 !README.md
-DB_MIGRATION_ALERT.md
+!DB_MIGRATION_ALERT.md
 *.txt
+*.resolved
 
 ### External Materials ###
 grevo-be-material/
