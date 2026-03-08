@@ -100,6 +100,11 @@ public class MissionServiceImpl implements MissionService {
         RescueTeam rescueTeam = rescueTeamRepository.findById(request.getRescueTeamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
 
+        RescueTeam.TeamStatus teamStatus = rescueTeam.getStatus();
+        if (teamStatus == RescueTeam.TeamStatus.BUSY || teamStatus == RescueTeam.TeamStatus.INACTIVE) {
+            throw new BadRequestException("Đội cứu hộ không sẵn sàng (BUSY/INACTIVE), không thể nhận nhiệm vụ mới");
+        }
+
         MissionAssignment assignment = new MissionAssignment();
         assignment.setMission(mission);
         assignment.setRescueTeam(rescueTeam);
@@ -108,7 +113,11 @@ public class MissionServiceImpl implements MissionService {
         assignment.setStatus(MissionAssignment.AssignmentStatus.ACCEPTED);
         missionAssignmentRepository.save(assignment);
 
+        rescueTeam.setStatus(RescueTeam.TeamStatus.BUSY);
+        rescueTeamRepository.save(rescueTeam);
+
         mission.setStatus(Mission.MissionStatus.ASSIGNED);
+        mission.setStartTime(LocalDateTime.now());
         Mission saved = missionRepository.save(mission);
         return mapToResponse(saved);
     }
@@ -146,9 +155,6 @@ public class MissionServiceImpl implements MissionService {
         if (newStatus == Mission.MissionStatus.IN_PROGRESS && mission.getStartTime() == null) {
             mission.setStartTime(now);
             linkedRequest.setStatus(Request.RequestStatus.IN_PROGRESS);
-        }
-        if (newStatus == Mission.MissionStatus.ASSIGNED) {
-            linkedRequest.setStatus(Request.RequestStatus.ASSIGNED);
         }
         if (newStatus == Mission.MissionStatus.ARRIVED) {
             linkedRequest.setStatus(Request.RequestStatus.ARRIVED);
@@ -191,13 +197,11 @@ public class MissionServiceImpl implements MissionService {
 
         List<MissionAssignment> assignments = missionAssignmentRepository
                 .findByRescueTeam_IdAndStatus(teamMember.getRescueTeam().getId(),
-                        MissionAssignment.AssignmentStatus.ACCEPTED)
-                .stream()
-                .filter(assignment -> assignment.getMission() != null
-                        && assignment.getMission().getStatus() != Mission.MissionStatus.COMPLETED)
-                .toList();
+                        MissionAssignment.AssignmentStatus.ACCEPTED);
 
         return assignments.stream()
+                .filter(a -> a.getMission() == null
+                        || a.getMission().getStatus() != Mission.MissionStatus.COMPLETED)
                 .map(this::mapToAssignedMissionResponse)
                 .collect(Collectors.toList());
     }

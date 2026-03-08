@@ -418,7 +418,7 @@ public class DataSeeder implements CommandLineRunner {
                 for (int t = 1; t <= TEAMS_PER_STRATEGIC_DISTRICT; t++) {
                     RescueTeam team = new RescueTeam();
                     team.setName("Đội Cứu hộ " + districtName + " - " + t);
-                    team.setStatus("ACTIVE");
+                    team.setStatus(RescueTeam.TeamStatus.ACTIVE);
                     team.setQuantity(MEMBERS_PER_TEAM);
                     team.setWarehouse(savedWarehouse);
                     RescueTeam savedTeam = rescueTeamRepository.save(team);

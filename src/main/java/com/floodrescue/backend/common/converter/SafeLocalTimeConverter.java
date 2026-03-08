@@ -9,11 +9,6 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-/**
- * JPA converter for LocalTime that truncates to milliseconds when reading from DB.
- * Fixes PostgreSQL JDBC driver issue where time conversion can produce invalid
- * NanoOfSecond values causing DateTimeException.
- */
 @Converter(autoApply = true)
 public class SafeLocalTimeConverter implements AttributeConverter<LocalTime, Time> {
 
@@ -27,13 +22,10 @@ public class SafeLocalTimeConverter implements AttributeConverter<LocalTime, Tim
         if (dbData == null) {
             return null;
         }
-        try {
-            return dbData.toLocalTime().truncatedTo(ChronoUnit.MILLIS);
-        } catch (Exception e) {
-            return Instant.ofEpochMilli(dbData.getTime())
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalTime()
-                    .truncatedTo(ChronoUnit.SECONDS);
-        }
+        // Build time from epoch millis to avoid corrupt nanos coming from some JDBC drivers
+        return Instant.ofEpochMilli(dbData.getTime())
+                .atZone(ZoneId.systemDefault())
+                .toLocalTime()
+                .truncatedTo(ChronoUnit.MILLIS);
     }
 }
