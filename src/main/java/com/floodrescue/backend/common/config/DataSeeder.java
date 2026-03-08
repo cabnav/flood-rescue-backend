@@ -17,9 +17,13 @@ import com.floodrescue.backend.manager.repository.ReliefDistributionRepository;
 import com.floodrescue.backend.manager.repository.VehicleRepository;
 import com.floodrescue.backend.manager.repository.WarehouseRepository;
 import com.floodrescue.backend.rescue.model.Mission;
+import com.floodrescue.backend.rescue.model.RescueTeam;
 import com.floodrescue.backend.rescue.model.Report;
+import com.floodrescue.backend.rescue.model.TeamMember;
 import com.floodrescue.backend.rescue.repository.MissionRepository;
+import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
 import com.floodrescue.backend.rescue.repository.ReportRepository;
+import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 @Transactional
@@ -46,6 +51,8 @@ public class DataSeeder implements CommandLineRunner {
     private final ReliefDistributionRepository reliefDistributionRepository;
     private final MissionRepository missionRepository;
     private final ReportRepository reportRepository;
+    private final RescueTeamRepository rescueTeamRepository;
+    private final TeamMemberRepository teamMemberRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(RoleRepository roleRepository,
@@ -58,6 +65,8 @@ public class DataSeeder implements CommandLineRunner {
             ReliefDistributionRepository reliefDistributionRepository,
             MissionRepository missionRepository,
             ReportRepository reportRepository,
+            RescueTeamRepository rescueTeamRepository,
+            TeamMemberRepository teamMemberRepository,
             PasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -69,8 +78,81 @@ public class DataSeeder implements CommandLineRunner {
         this.reliefDistributionRepository = reliefDistributionRepository;
         this.missionRepository = missionRepository;
         this.reportRepository = reportRepository;
+        this.rescueTeamRepository = rescueTeamRepository;
+        this.teamMemberRepository = teamMemberRepository;
         this.passwordEncoder = passwordEncoder;
     }
+
+    // =====================================================================
+    // HCM City District Data: { name, latitude, longitude, address, slug }
+    // 22 districts with real GPS center-point coordinates
+    // =====================================================================
+    private static final String[][] HCM_DISTRICTS = {
+            { "Quận 1", "10.776889", "106.700806",
+                    "Kho Cứu trợ Quận 1, Đường Lê Duẩn, Phường Bến Nghé, Quận 1, TP.HCM", "quan1" },
+            { "Quận 3", "10.784680", "106.686930",
+                    "Kho Cứu trợ Quận 3, Đường Võ Văn Tần, Phường 5, Quận 3, TP.HCM", "quan3" },
+            { "Quận 4", "10.757640", "106.706370",
+                    "Kho Cứu trợ Quận 4, Đường Bến Vân Đồn, Phường 1, Quận 4, TP.HCM", "quan4" },
+            { "Quận 5", "10.754120", "106.662360",
+                    "Kho Cứu trợ Quận 5, Đường An Dương Vương, Phường 3, Quận 5, TP.HCM", "quan5" },
+            { "Quận 6", "10.748220", "106.635460",
+                    "Kho Cứu trợ Quận 6, Đường Hậu Giang, Phường 4, Quận 6, TP.HCM", "quan6" },
+            { "Quận 7", "10.734060", "106.721620",
+                    "Kho Cứu trợ Quận 7, Đường Nguyễn Thị Thập, Phường Tân Phú, Quận 7, TP.HCM", "quan7" },
+            { "Quận 8", "10.740150", "106.652280",
+                    "Kho Cứu trợ Quận 8, Đường Phạm Thế Hiển, Phường 4, Quận 8, TP.HCM", "quan8" },
+            { "Quận 10", "10.774160", "106.667890",
+                    "Kho Cứu trợ Quận 10, Đường 3 Tháng 2, Phường 12, Quận 10, TP.HCM", "quan10" },
+            { "Quận 11", "10.764830", "106.650150",
+                    "Kho Cứu trợ Quận 11, Đường Lạc Long Quân, Phường 3, Quận 11, TP.HCM", "quan11" },
+            { "Quận 12", "10.867230", "106.641690",
+                    "Kho Cứu trợ Quận 12, Đường Nguyễn Ảnh Thủ, Phường Hiệp Thành, Quận 12, TP.HCM", "quan12" },
+            { "Quận Bình Thạnh", "10.810560", "106.709270",
+                    "Kho Cứu trợ Bình Thạnh, Đường Xô Viết Nghệ Tĩnh, Phường 21, Quận Bình Thạnh, TP.HCM",
+                    "binhthanh" },
+            { "Quận Gò Vấp", "10.838500", "106.651820",
+                    "Kho Cứu trợ Gò Vấp, Đường Quang Trung, Phường 10, Quận Gò Vấp, TP.HCM", "govap" },
+            { "Quận Phú Nhuận", "10.798490", "106.680380",
+                    "Kho Cứu trợ Phú Nhuận, Đường Phan Đình Phùng, Phường 1, Quận Phú Nhuận, TP.HCM",
+                    "phunhuan" },
+            { "Quận Tân Bình", "10.801750", "106.652620",
+                    "Kho Cứu trợ Tân Bình, Đường Cộng Hòa, Phường 13, Quận Tân Bình, TP.HCM", "tanbinh" },
+            { "Quận Tân Phú", "10.790780", "106.628520",
+                    "Kho Cứu trợ Tân Phú, Đường Lũy Bán Bích, Phường Hòa Thạnh, Quận Tân Phú, TP.HCM",
+                    "tanphu" },
+            { "Quận Bình Tân", "10.765630", "106.604260",
+                    "Kho Cứu trợ Bình Tân, Đường Kinh Dương Vương, Phường An Lạc, Quận Bình Tân, TP.HCM",
+                    "binhtan" },
+            { "TP. Thủ Đức", "10.851590", "106.753860",
+                    "Kho Cứu trợ Thủ Đức, Đường Võ Văn Ngân, Phường Linh Chiểu, TP. Thủ Đức, TP.HCM",
+                    "thuduc" },
+            { "Huyện Nhà Bè", "10.694740", "106.734280",
+                    "Kho Cứu trợ Nhà Bè, Đường Lê Văn Lương, TT. Nhà Bè, Huyện Nhà Bè, TP.HCM", "nhabe" },
+            { "Huyện Hóc Môn", "10.886010", "106.593210",
+                    "Kho Cứu trợ Hóc Môn, Đường Lý Thường Kiệt, TT. Hóc Môn, Huyện Hóc Môn, TP.HCM",
+                    "hocmon" },
+            { "Huyện Củ Chi", "10.973160", "106.493200",
+                    "Kho Cứu trợ Củ Chi, Đường Tỉnh Lộ 8, TT. Củ Chi, Huyện Củ Chi, TP.HCM", "cuchi" },
+            { "Huyện Cần Giờ", "10.411540", "106.953710",
+                    "Kho Cứu trợ Cần Giờ, Đường Rừng Sác, TT. Cần Thạnh, Huyện Cần Giờ, TP.HCM", "cangio" },
+            { "Huyện Bình Chánh", "10.716020", "106.594130",
+                    "Kho Cứu trợ Bình Chánh, Đường Quốc Lộ 1A, TT. Tân Túc, Huyện Bình Chánh, TP.HCM",
+                    "binhchanh" },
+    };
+
+    // 5 strategic districts that will have rescue teams (Center, East, West, South,
+    // North)
+    private static final Set<String> STRATEGIC_DISTRICTS = Set.of(
+            "quan1", // Center
+            "thuduc", // East
+            "binhtan", // West
+            "quan7", // South
+            "quan12" // North
+    );
+
+    private static final int TEAMS_PER_STRATEGIC_DISTRICT = 3;
+    private static final int MEMBERS_PER_TEAM = 7;
 
     @Override
     public void run(String... args) {
@@ -78,7 +160,7 @@ public class DataSeeder implements CommandLineRunner {
         seedUsers();
         seedRequests();
         seedVehicles();
-        seedWarehouses();
+        seedHcmData();
         seedMissions();
         seedInventoryAndReliefDistribution();
         seedMissionReport();
@@ -122,7 +204,7 @@ public class DataSeeder implements CommandLineRunner {
             userRepository.save(citizen);
         }
 
-        // 3. Rescue Team
+        // 3. Rescue Team (legacy single user — kept for backward compatibility)
         if (!userRepository.existsByEmail("team@rescue.com")) {
             User team = new User();
             team.setFullName("Rescue Team");
@@ -156,7 +238,7 @@ public class DataSeeder implements CommandLineRunner {
                     return userRepository.save(newCitizen);
                 });
 
-        // Request 1 - CREATED
+        // Request 1 - PENDING (rescue)
         Request request1 = new Request();
         request1.setUser(citizen);
         request1.setPhone(citizen.getPhoneNumber());
@@ -184,7 +266,7 @@ public class DataSeeder implements CommandLineRunner {
         request2.setCreatedAt(LocalDateTime.now().minusMinutes(45));
         requestRepository.save(request2);
 
-        // Request 3 - CREATED (relief)
+        // Request 3 - PENDING (classified as relief)
         Request request3 = new Request();
         request3.setUser(citizen);
         request3.setPhone(citizen.getPhoneNumber());
@@ -214,9 +296,6 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        // For now, we create vehicles without linking to a specific depot (null depot
-        // is allowed)
-
         Vehicle vehicle1 = new Vehicle();
         vehicle1.setDepot(null);
         vehicle1.setType("Boat");
@@ -245,7 +324,10 @@ public class DataSeeder implements CommandLineRunner {
         vehicleRepository.save(vehicle3);
     }
 
-    private void seedWarehouses() {
+    // =====================================================================
+    // Core: Seed 22 HCM City Warehouses + Rescue Teams in 5 Strategic Districts
+    // =====================================================================
+    private void seedHcmData() {
         if (warehouseRepository.count() > 0) {
             return;
         }
@@ -254,26 +336,69 @@ public class DataSeeder implements CommandLineRunner {
                 .orElseThrow(() -> new IllegalStateException(
                         "Admin user not found. Ensure users are seeded before warehouses."));
 
-        Warehouse warehouse1 = new Warehouse();
-        warehouse1.setUser(admin);
-        warehouse1.setResourceId("WH-001");
-        warehouse1.setSupplyId("SUP-FOOD-001");
-        warehouse1.setStatus(Warehouse.WarehouseStatus.ACTIVE);
-        warehouseRepository.save(warehouse1);
+        Role rescueTeamRole = roleRepository.findByName("RESCUE_TEAM")
+                .orElseThrow(() -> new IllegalStateException(
+                        "RESCUE_TEAM role not found. Ensure roles are seeded first."));
 
-        Warehouse warehouse2 = new Warehouse();
-        warehouse2.setUser(admin);
-        warehouse2.setResourceId("WH-002");
-        warehouse2.setSupplyId("SUP-MED-001");
-        warehouse2.setStatus(Warehouse.WarehouseStatus.ACTIVE);
-        warehouseRepository.save(warehouse2);
+        String encodedPassword = passwordEncoder.encode("team123");
 
-        Warehouse warehouse3 = new Warehouse();
-        warehouse3.setUser(admin);
-        warehouse3.setResourceId("WH-003");
-        warehouse3.setSupplyId("SUP-WATER-001");
-        warehouse3.setStatus(Warehouse.WarehouseStatus.INACTIVE);
-        warehouseRepository.save(warehouse3);
+        for (int d = 0; d < HCM_DISTRICTS.length; d++) {
+            String districtName = HCM_DISTRICTS[d][0];
+            BigDecimal lat = new BigDecimal(HCM_DISTRICTS[d][1]);
+            BigDecimal lng = new BigDecimal(HCM_DISTRICTS[d][2]);
+            String address = HCM_DISTRICTS[d][3];
+            String slug = HCM_DISTRICTS[d][4];
+
+            // --- Create Warehouse ---
+            Warehouse warehouse = new Warehouse();
+            warehouse.setUser(admin);
+            warehouse.setResourceId("WH-" + String.format("%03d", d + 1));
+            warehouse.setSupplyId("SUP-" + slug.toUpperCase());
+            warehouse.setStatus(Warehouse.WarehouseStatus.ACTIVE);
+            warehouse.setLatitude(lat);
+            warehouse.setLongitude(lng);
+            warehouse.setAddress(address);
+            Warehouse savedWarehouse = warehouseRepository.save(warehouse);
+
+            // --- Create Rescue Teams (only for strategic districts) ---
+            if (STRATEGIC_DISTRICTS.contains(slug)) {
+                for (int t = 1; t <= TEAMS_PER_STRATEGIC_DISTRICT; t++) {
+                    RescueTeam team = new RescueTeam();
+                    team.setName("Đội Cứu hộ " + districtName + " - " + t);
+                    team.setStatus("ACTIVE");
+                    team.setQuantity(MEMBERS_PER_TEAM);
+                    team.setWarehouse(savedWarehouse);
+                    team.setLatitude(lat);
+                    team.setLongitude(lng);
+                    RescueTeam savedTeam = rescueTeamRepository.save(team);
+
+                    // --- Create 7 Team Members ---
+                    for (int m = 1; m <= MEMBERS_PER_TEAM; m++) {
+                        String email = String.format("rescue.%s.t%d.m%d@floodrescue.com", slug, t, m);
+                        String phone = String.format("09%02d%d%d", d + 1, t, m);
+                        String fullName = String.format("Thành viên %d - Đội %d %s", m, t, districtName);
+
+                        if (!userRepository.existsByEmail(email)) {
+                            User member = new User();
+                            member.setFullName(fullName);
+                            member.setEmail(email);
+                            member.setPhoneNumber(phone);
+                            member.setPasswordHash(encodedPassword);
+                            member.setRole(rescueTeamRole);
+                            member.setIsActive(true);
+                            member.setCreatedAt(LocalDateTime.now());
+                            User savedUser = userRepository.save(member);
+
+                            TeamMember teamMember = new TeamMember();
+                            teamMember.setUser(savedUser);
+                            teamMember.setRescueTeam(savedTeam);
+                            teamMember.setRoleInTeam(m == 1 ? "LEADER" : "MEMBER");
+                            teamMemberRepository.save(teamMember);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void seedMissions() {

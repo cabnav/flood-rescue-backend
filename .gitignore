@@ -41,6 +41,7 @@ build/
 ### Local Documentation & Reports ###
 *.md
 !README.md
+DB_MIGRATION_ALERT.md
 *.txt
 
 ### External Materials ###
