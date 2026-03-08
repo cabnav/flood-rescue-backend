@@ -58,7 +58,7 @@ public class MissionController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN', 'RESCUE_TEAM')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> updateMissionStatus(
             @PathVariable Integer id,
             @RequestBody MissionStatusUpdateRequest request) {
