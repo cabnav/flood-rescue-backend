@@ -26,11 +26,12 @@ import com.floodrescue.backend.rescue.repository.ReportRepository;
 import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
 import com.floodrescue.backend.rescue.model.TeamPosition;
 import com.floodrescue.backend.rescue.repository.TeamPositionRepository;
+import com.floodrescue.backend.admin.repository.NotificationRepository;
+import com.floodrescue.backend.admin.model.Notification;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -58,8 +59,8 @@ public class DataSeeder implements CommandLineRunner {
     private final RescueTeamRepository rescueTeamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TeamPositionRepository teamPositionRepository;
+    private final NotificationRepository notificationRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JdbcTemplate jdbcTemplate;
 
     public DataSeeder(RoleRepository roleRepository,
             UserRepository userRepository,
@@ -74,8 +75,8 @@ public class DataSeeder implements CommandLineRunner {
             RescueTeamRepository rescueTeamRepository,
             TeamMemberRepository teamMemberRepository,
             TeamPositionRepository teamPositionRepository,
-            PasswordEncoder passwordEncoder,
-            JdbcTemplate jdbcTemplate) {
+            NotificationRepository notificationRepository,
+            PasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.requestRepository = requestRepository;
@@ -89,8 +90,8 @@ public class DataSeeder implements CommandLineRunner {
         this.rescueTeamRepository = rescueTeamRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.teamPositionRepository = teamPositionRepository;
+        this.notificationRepository = notificationRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     // =====================================================================
@@ -166,24 +167,7 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        try {
-            jdbcTemplate.execute("TRUNCATE TABLE relief_distributions CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE inventories CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE items CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE reports CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE missions CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE team_members CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE team_positions CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE rescue_teams CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE warehouses CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE requests CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE vehicles CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE users CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE roles CASCADE");
-        } catch (Exception e) {
-            System.out.println("Could not truncate tables: " + e.getMessage());
-        }
-
+        // Safe seeding: No more TRUNCATE CASCADE to avoid data loss.
         seedRoles();
         seedUsers();
         seedRequests();
@@ -192,13 +176,15 @@ public class DataSeeder implements CommandLineRunner {
         seedMissions();
         seedInventoryAndReliefDistribution();
         seedMissionReport();
+        seedNotifications();
     }
 
     private void seedRoles() {
-        String[] roleNames = { "ADMIN", "CITIZEN", "RESCUE_TEAM", "RESCUE_COORDINATOR" };
+        String[] roleNames = { "ADMIN", "CITIZEN", "RESCUE_TEAM", "RESCUE_COORDINATOR", "COORDINATOR", "MANAGER" };
         for (String roleName : roleNames) {
-            roleRepository.findByName(roleName)
-                    .orElseGet(() -> roleRepository.save(new Role(null, roleName)));
+            if (!roleRepository.existsByName(roleName)) {
+                roleRepository.save(new Role(null, roleName));
+            }
         }
     }
 
@@ -219,7 +205,33 @@ public class DataSeeder implements CommandLineRunner {
             userRepository.save(admin);
         }
 
-        // 2. Citizen
+        // 2. Manager
+        if (!userRepository.existsByEmail("manager@test.com")) {
+            User manager = new User();
+            manager.setFullName("Test Manager");
+            manager.setEmail("manager@test.com");
+            manager.setPhoneNumber("0900000004");
+            manager.setPasswordHash(passwordEncoder.encode("manager123"));
+            manager.setRole(roleMap.get("MANAGER"));
+            manager.setIsActive(true);
+            manager.setCreatedAt(LocalDateTime.now());
+            userRepository.save(manager);
+        }
+
+        // 3. Coordinator
+        if (!userRepository.existsByEmail("coordinator@test.com")) {
+            User coordinator = new User();
+            coordinator.setFullName("Test Coordinator");
+            coordinator.setEmail("coordinator@test.com");
+            coordinator.setPhoneNumber("0900000005");
+            coordinator.setPasswordHash(passwordEncoder.encode("coordinator123"));
+            coordinator.setRole(roleMap.get("COORDINATOR"));
+            coordinator.setIsActive(true);
+            coordinator.setCreatedAt(LocalDateTime.now());
+            userRepository.save(coordinator);
+        }
+
+        // 4. Citizen
         if (!userRepository.existsByEmail("citizen@test.com")) {
             User citizen = new User();
             citizen.setFullName("Test Citizen");
@@ -232,18 +244,31 @@ public class DataSeeder implements CommandLineRunner {
             userRepository.save(citizen);
         }
 
-        // 3. Rescue Team (legacy single user — kept for backward compatibility)
-        if (!userRepository.existsByEmail("team@rescue.com")) {
-            User team = new User();
-            team.setFullName("Rescue Team");
-            team.setEmail("team@rescue.com");
-            team.setPhoneNumber("0900000003");
-            team.setPasswordHash(passwordEncoder.encode("team123"));
-            team.setRole(roleMap.get("RESCUE_TEAM"));
-            team.setIsActive(true);
-            team.setCreatedAt(LocalDateTime.now());
-            userRepository.save(team);
+        // 5. Rescue Team (legacy single user — kept for backward compatibility)
+    }
+
+    private void seedNotifications() {
+        if (notificationRepository.count() > 0) {
+            return;
         }
+
+        userRepository.findByEmail("admin@floodrescue.com").ifPresent(admin -> {
+            Notification n1 = new Notification();
+            n1.setUser(admin);
+            n1.setMessage("Chào mừng bạn quay lại hệ thống điều hành cứu hộ.");
+            n1.setIsRead(false);
+            n1.setCreatedAt(LocalDateTime.now().minusMinutes(5));
+            notificationRepository.save(n1);
+        });
+
+        userRepository.findByEmail("citizen@test.com").ifPresent(citizen -> {
+            Notification n2 = new Notification();
+            n2.setUser(citizen);
+            n2.setMessage("Yêu cầu cứu hộ của bạn đã được tiếp nhận.");
+            n2.setIsRead(false);
+            n2.setCreatedAt(LocalDateTime.now().minusMinutes(10));
+            notificationRepository.save(n2);
+        });
     }
 
     private void seedRequests() {
