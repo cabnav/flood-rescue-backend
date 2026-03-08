@@ -350,6 +350,9 @@ public class MissionServiceImpl implements MissionService {
 
         AssignedMissionResponse response = new AssignedMissionResponse();
         response.setAssignmentId(assignment.getId());
+        if (assignment.getRescueTeam() != null) {
+            response.setRescueTeamId(assignment.getRescueTeam().getId());
+        }
         response.setStatus(assignment.getStatus());
         response.setMission(mapToResponse(mission));
 
