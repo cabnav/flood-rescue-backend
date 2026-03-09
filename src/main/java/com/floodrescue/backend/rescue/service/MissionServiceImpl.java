@@ -8,20 +8,17 @@ import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.common.exception.UnauthorizedAccessException;
 import com.floodrescue.backend.manager.model.Inventory;
-import com.floodrescue.backend.manager.model.MissionSupply;
+import com.floodrescue.backend.manager.model.InventoryTransaction;
+import com.floodrescue.backend.manager.model.ReliefDistribution;
 import com.floodrescue.backend.manager.model.MissionVehicle;
 import com.floodrescue.backend.manager.model.Vehicle;
 import com.floodrescue.backend.manager.repository.InventoryRepository;
-import com.floodrescue.backend.manager.repository.MissionSupplyRepository;
+import com.floodrescue.backend.manager.repository.InventoryTransactionRepository;
+import com.floodrescue.backend.manager.repository.ReliefDistributionRepository;
 import com.floodrescue.backend.manager.repository.MissionVehicleRepository;
 import com.floodrescue.backend.manager.repository.VehicleRepository;
-import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
-import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
-import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
-import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
+import com.floodrescue.backend.rescue.dto.*;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
-import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
-import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
 import com.floodrescue.backend.rescue.model.Mission;
 import com.floodrescue.backend.rescue.model.MissionAssignment;
 import com.floodrescue.backend.rescue.model.RescueTeam;
@@ -58,6 +55,8 @@ public class MissionServiceImpl implements MissionService {
     private final VehicleRepository vehicleRepository;
     private final MissionVehicleRepository missionVehicleRepository;
     private final InventoryRepository inventoryRepository;
+    private final InventoryTransactionRepository inventoryTransactionRepository;
+    private final ReliefDistributionRepository reliefDistributionRepository;
     private final MissionSupplyRepository missionSupplyRepository;
     private final NotificationService notificationService;
     private final ReportRepository reportRepository;
@@ -108,7 +107,9 @@ public class MissionServiceImpl implements MissionService {
         MissionAssignment assignment = new MissionAssignment();
         assignment.setMission(mission);
         assignment.setRescueTeam(rescueTeam);
-        assignment.setAssignedTime(LocalTime.now());
+        assignment.setAssignedTime(
+                LocalTime.now().withNano(0)
+        );
         assignment.setMissionRole(request.getMissionRole());
         assignment.setStatus(MissionAssignment.AssignmentStatus.ACCEPTED);
         missionAssignmentRepository.save(assignment);
@@ -135,6 +136,7 @@ public class MissionServiceImpl implements MissionService {
         User actor = getCurrentUser();
         boolean actorIsRescueTeam = hasRole(actor, "RESCUE_TEAM");
         boolean actorIsCoordinator = hasRole(actor, "RESCUE_COORDINATOR");
+       Mission.MissionStatus oldStatus = mission.getStatus();
 
         Mission.MissionStatus newStatus;
         try {
@@ -159,6 +161,7 @@ public class MissionServiceImpl implements MissionService {
         if (newStatus == Mission.MissionStatus.ARRIVED) {
             linkedRequest.setStatus(Request.RequestStatus.ARRIVED);
         }
+       
         if ((newStatus == Mission.MissionStatus.COMPLETED || newStatus == Mission.MissionStatus.CANCELLED)
                 && mission.getEndTime() == null) {
             mission.setEndTime(now);
@@ -169,9 +172,17 @@ public class MissionServiceImpl implements MissionService {
         if (newStatus == Mission.MissionStatus.COMPLETED && actorIsCoordinator) {
             linkedRequest.setStatus(Request.RequestStatus.COMPLETED);
         }
+       if (isTerminalStatus(newStatus) && mission.getEndTime() == null) {
+            mission.setEndTime(LocalDateTime.now());
 
         Mission saved = missionRepository.save(mission);
 
+        if (isTerminalStatus(newStatus)) {
+            updateAssignmentsForMission(saved, newStatus);
+            releaseVehiclesForMission(saved);
+            if (shouldReturnSupplies(oldStatus, newStatus)) {
+                returnSuppliesForMission(saved);
+            }
         if (newStatus == Mission.MissionStatus.COMPLETED) {
             if (completingNow) {
                 createCompletionReport(saved, actor, request);
@@ -187,6 +198,23 @@ public class MissionServiceImpl implements MissionService {
         }
 
         return mapToResponse(saved);
+    }
+
+    private static boolean isTerminalStatus(Mission.MissionStatus status) {
+        return status == Mission.MissionStatus.COMPLETED
+                || status == Mission.MissionStatus.FAILED
+                || status == Mission.MissionStatus.CANCELLED;
+    }
+
+    /**
+     * Chỉ hoàn vật tư một lần: khi trạng thái mới là FAILED/CANCELLED
+     * và trạng thái cũ chưa phải FAILED/CANCELLED.
+     */
+    private static boolean shouldReturnSupplies(Mission.MissionStatus oldStatus, Mission.MissionStatus newStatus) {
+        if (newStatus != Mission.MissionStatus.FAILED && newStatus != Mission.MissionStatus.CANCELLED) {
+            return false;
+        }
+        return oldStatus != Mission.MissionStatus.FAILED && oldStatus != Mission.MissionStatus.CANCELLED;
     }
 
     @Override
@@ -320,18 +348,63 @@ public class MissionServiceImpl implements MissionService {
         }
 
         // 4. Deduct quantity from inventory
-        inventory.setQuantity(inventory.getQuantity() - request.getQuantity());
+        int beforeQuantity = inventory.getQuantity();
+        int afterQuantity = beforeQuantity - request.getQuantity();
+        inventory.setQuantity(afterQuantity);
         inventory.setLastUpdate(LocalDateTime.now());
         inventoryRepository.save(inventory);
 
-        // 5. Create MissionSupply junction record
-        MissionSupply missionSupply = new MissionSupply();
-        missionSupply.setMission(mission);
-        missionSupply.setInventory(inventory);
-        missionSupply.setQuantity(request.getQuantity());
-        missionSupplyRepository.save(missionSupply);
+        // 5. Ghi nhận giao dịch xuất kho
+        InventoryTransaction transaction = new InventoryTransaction();
+        transaction.setInventory(inventory);
+        transaction.setTransactionType(InventoryTransaction.TransactionType.OUT);
+        transaction.setQuantity(request.getQuantity());
+        transaction.setBeforeQuantity(beforeQuantity);
+        transaction.setAfterQuantity(afterQuantity);
+        transaction.setUser(getCurrentUserOrNull());
+        inventoryTransactionRepository.save(transaction);
+
+        // 6. Ghi nhận xuất vật tư (dùng ReliefDistribution tạm thay mission_supplies)
+        ReliefDistribution distribution = new ReliefDistribution();
+        distribution.setMission(mission);
+        distribution.setInventory(inventory);
+        distribution.setQuantityDistributed(request.getQuantity());
+        distribution.setDistributedAt(LocalDateTime.now());
+        distribution.setReturned(false);
+        reliefDistributionRepository.save(distribution);
 
         return mapToResponse(mission);
+    }
+
+    // =====================================================================
+    // Feature 4: Combined assignment — team, vehicle, supplies in one shot
+    // =====================================================================
+    @Override
+    @Transactional
+    public MissionDetailResponse assignMissionWithResources(Integer missionId, AssignMissionWithResourcesRequest request) {
+        if (request == null || request.getTeam() == null) {
+            throw new BadRequestException("Thông tin phân công đội cứu hộ là bắt buộc");
+        }
+
+        // 1) Assign rescue team (always required)
+        MissionDetailResponse response = assignMission(missionId, request.getTeam());
+
+        // 2) Optionally assign vehicle
+        if (request.getVehicle() != null) {
+            response = assignVehicleToMission(missionId, request.getVehicle());
+        }
+
+        // 3) Optionally assign multiple supplies
+        if (request.getSupplies() != null) {
+            for (AssignSuppliesRequest suppliesRequest : request.getSupplies()) {
+                if (suppliesRequest != null) {
+                    response = assignSuppliesToMission(missionId, suppliesRequest);
+                }
+            }
+        }
+
+        // All operations share the same transaction (method is @Transactional).
+        return response;
     }
 
     // =====================================================================
@@ -346,6 +419,45 @@ public class MissionServiceImpl implements MissionService {
                 vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
                 vehicleRepository.save(vehicle);
             }
+        }
+    }
+
+    /**
+     * Hoàn vật tư đã xuất về kho khi mission FAILED hoặc CANCELLED (chưa sử dụng).
+     * Dùng ReliefDistribution, chỉ xử lý bản ghi chưa returned.
+     */
+    private void returnSuppliesForMission(Mission mission) {
+        List<ReliefDistribution> distributions = reliefDistributionRepository.findByMission_IdAndReturnedFalse(mission.getId());
+        for (ReliefDistribution rd : distributions) {
+            Inventory inv = rd.getInventory();
+            if (inv != null) {
+                int beforeQuantity = inv.getQuantity();
+                int qty = rd.getQuantityDistributed();
+                int afterQuantity = beforeQuantity + qty;
+                inv.setQuantity(afterQuantity);
+                inv.setLastUpdate(LocalDateTime.now());
+                inventoryRepository.save(inv);
+
+                InventoryTransaction transaction = new InventoryTransaction();
+                transaction.setInventory(inv);
+                transaction.setTransactionType(InventoryTransaction.TransactionType.IN);
+                transaction.setQuantity(qty);
+                transaction.setBeforeQuantity(beforeQuantity);
+                transaction.setAfterQuantity(afterQuantity);
+                transaction.setUser(getCurrentUserOrNull());
+                inventoryTransactionRepository.save(transaction);
+
+                rd.setReturned(true);
+                reliefDistributionRepository.save(rd);
+            }
+        }
+    }
+
+    private User getCurrentUserOrNull() {
+        try {
+            return getCurrentUser();
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -409,6 +521,36 @@ public class MissionServiceImpl implements MissionService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
     }
+    /**
+     * Cập nhật trạng thái tất cả MissionAssignment của mission khi mission kết thúc
+     * (COMPLETED / FAILED / CANCELLED). Assignment DECLINED giữ nguyên, còn lại map theo status mission.
+     */
+    private void updateAssignmentsForMission(Mission mission, Mission.MissionStatus status) {
+        List<MissionAssignment> assignments = missionAssignmentRepository.findByMission_Id(mission.getId());
+        MissionAssignment.AssignmentStatus targetStatus = mapMissionStatusToAssignmentStatus(status);
+        if (targetStatus == null) {
+            return;
+        }
+        for (MissionAssignment assignment : assignments) {
+            if (assignment.getStatus() == MissionAssignment.AssignmentStatus.DECLINED) {
+                continue;
+            }
+            assignment.setStatus(targetStatus);
+            missionAssignmentRepository.save(assignment);
+        }
+    }
+
+    private static MissionAssignment.AssignmentStatus mapMissionStatusToAssignmentStatus(Mission.MissionStatus status) {
+        switch (status) {
+            case COMPLETED:
+                return MissionAssignment.AssignmentStatus.COMPLETED;
+            case FAILED:
+                return MissionAssignment.AssignmentStatus.FAILED;
+            case CANCELLED:
+                return MissionAssignment.AssignmentStatus.CANCELLED;
+            default:
+                return null;
+        }
 
     private boolean hasRole(User user, String roleName) {
         return user != null

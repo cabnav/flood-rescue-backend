@@ -39,6 +39,7 @@ public class Mission {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+
     public enum MissionType {
         RESCUE,
         RELIEF
@@ -50,6 +51,7 @@ public class Mission {
         IN_PROGRESS,
         ARRIVED,
         COMPLETED,
+        FAILED,
         CANCELLED
     }
 }

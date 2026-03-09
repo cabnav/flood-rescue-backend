@@ -1,11 +1,8 @@
 package com.floodrescue.backend.rescue.controller;
 
 import com.floodrescue.backend.common.dto.ApiResponse;
-import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
-import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
-import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
-import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
-import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
+import com.floodrescue.backend.rescue.dto.*;
+import com.floodrescue.backend.rescue.service.MissionReportService;
 import com.floodrescue.backend.rescue.service.MissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +52,18 @@ public class MissionController {
             @RequestBody AssignMissionRequest request) {
         MissionDetailResponse response = missionService.assignMission(id, request);
         return ResponseEntity.ok(ApiResponse.success("Nhóm được giao nhiệm vụ thành công", response));
+    }
+    /**
+     * API kết hợp: Phân công nhiệm vụ + gán phương tiện + xuất vật tư
+     * trong một transaction duy nhất.
+     */
+    @PostMapping("/{id}/assign")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
+    public ResponseEntity<ApiResponse<MissionDetailResponse>> assignMissionWithResources(
+            @PathVariable Integer id,
+            @Valid @RequestBody AssignMissionWithResourcesRequest request) {
+        MissionDetailResponse response = missionService.assignMissionWithResources(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Phân công nhiệm vụ và gán nguồn lực thành công", response));
     }
 
     @PatchMapping("/{id}/status")
