@@ -101,8 +101,11 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
 
         RescueTeam.TeamStatus teamStatus = rescueTeam.getStatus();
-        if (teamStatus == RescueTeam.TeamStatus.BUSY || teamStatus == RescueTeam.TeamStatus.INACTIVE) {
-            throw new BadRequestException("Đội cứu hộ không sẵn sàng (BUSY/INACTIVE), không thể nhận nhiệm vụ mới");
+        if (teamStatus == RescueTeam.TeamStatus.BUSY) {
+            throw new BadRequestException("Đội cứu hộ đang bận, không thể nhận nhiệm vụ mới");
+        }
+        if (teamStatus == RescueTeam.TeamStatus.INACTIVE) {
+            throw new BadRequestException("Đội cứu hộ đang ngưng hoạt động, không thể nhận nhiệm vụ mới");
         }
 
         MissionAssignment assignment = new MissionAssignment();

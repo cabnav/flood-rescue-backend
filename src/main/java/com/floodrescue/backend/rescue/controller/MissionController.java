@@ -1,12 +1,9 @@
 package com.floodrescue.backend.rescue.controller;
 
 import com.floodrescue.backend.common.dto.ApiResponse;
-import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
-import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
-import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
-import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
-import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
+import com.floodrescue.backend.rescue.dto.*;
 import com.floodrescue.backend.rescue.service.MissionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,6 +30,15 @@ public class MissionController {
     public ResponseEntity<ApiResponse<List<AssignedMissionResponse>>> getMissionsAssignedToCurrentRescuer() {
         List<AssignedMissionResponse> responses = missionService.getMissionsAssignedToCurrentRescuer();
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @PostMapping("/{id}/assign-vehicle")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','MANAGER')")
+    public ResponseEntity<ApiResponse<MissionDetailResponse>> assignVehicleToMission(
+            @PathVariable Integer id,
+            @Valid @RequestBody AssignVehicleRequest request) {
+        MissionDetailResponse response = missionService.assignVehicleToMission(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Gán phương tiện cho nhiệm vụ thành công", response));
     }
 
     @GetMapping("/{id}")
