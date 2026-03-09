@@ -49,7 +49,6 @@ public class DashboardServiceImpl implements DashboardService {
         response.setTotalVehicles(vehicleRepository.count());
         response.setVehiclesAvailable(vehicleRepository.countByStatus(Vehicle.VehicleStatus.AVAILABLE));
         response.setVehiclesInUse(vehicleRepository.countByStatus(Vehicle.VehicleStatus.IN_USE));
-        response.setVehiclesMaintenance(vehicleRepository.countByStatus(Vehicle.VehicleStatus.MAINTENANCE));
 
         return response;
     }

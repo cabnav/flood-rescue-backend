@@ -62,7 +62,6 @@ public class MissionServiceImpl implements MissionService {
     private final NotificationService notificationService;
     private final ReportRepository reportRepository;
 
-
     @Override
     public MissionDetailResponse createMission(Integer requestId) {
         Request request = requestRepository.findById(requestId)
@@ -98,7 +97,8 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + missionId));
 
         RescueTeam rescueTeam = rescueTeamRepository.findById(request.getRescueTeamId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
 
         RescueTeam.TeamStatus teamStatus = rescueTeam.getStatus();
         if (teamStatus == RescueTeam.TeamStatus.BUSY || teamStatus == RescueTeam.TeamStatus.INACTIVE) {
@@ -172,15 +172,19 @@ public class MissionServiceImpl implements MissionService {
 
         Mission saved = missionRepository.save(mission);
 
-        if (newStatus == Mission.MissionStatus.COMPLETED) {
-            if (completingNow) {
-                createCompletionReport(saved, actor, request);
+        if (newStatus == Mission.MissionStatus.COMPLETED || newStatus == Mission.MissionStatus.CANCELLED) {
+            if (completingNow || newStatus == Mission.MissionStatus.CANCELLED) {
+                if (newStatus == Mission.MissionStatus.COMPLETED) {
+                    createCompletionReport(saved, actor, request);
+                }
                 releaseVehiclesForMission(saved);
             }
-            if (actorIsCoordinator) {
-                notifyCitizenCompletion(linkedRequest, saved);
-            } else if (actorIsRescueTeam) {
-                notifyCoordinatorsForCompletion(saved, linkedRequest);
+            if (newStatus == Mission.MissionStatus.COMPLETED) {
+                if (actorIsCoordinator) {
+                    notifyCitizenCompletion(linkedRequest, saved);
+                } else if (actorIsRescueTeam) {
+                    notifyCoordinatorsForCompletion(saved, linkedRequest);
+                }
             }
         } else if (actorIsRescueTeam) {
             notifyCitizen(linkedRequest, newStatus);
@@ -208,7 +212,7 @@ public class MissionServiceImpl implements MissionService {
 
     @Override
     public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
-                                                            MissionAssignmentResponseRequest request) {
+            MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
             throw new BadRequestException("Cần phải đưa ra quyết định.");
         }
@@ -218,7 +222,8 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new UnauthorizedAccessException("Người dùng không thuộc bất kỳ đội cứu hộ nào."));
 
         MissionAssignment assignment = missionAssignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ được giao với ID: " + assignmentId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy nhiệm vụ được giao với ID: " + assignmentId));
 
         if (!assignment.getRescueTeam().getId().equals(teamMember.getRescueTeam().getId())) {
             throw new UnauthorizedAccessException("Nhiệm vụ này không được giao cho nhóm của bạn");
@@ -243,7 +248,8 @@ public class MissionServiceImpl implements MissionService {
                 assignment.setDeclineReason(request.getReason());
                 break;
             default:
-                throw new BadRequestException("Quyết định không hợp lệ. Các giá trị được cho phép: ACCEPTED hoặc DECLINED");
+                throw new BadRequestException(
+                        "Quyết định không hợp lệ. Các giá trị được cho phép: ACCEPTED hoặc DECLINED");
         }
 
         missionAssignmentRepository.save(assignment);

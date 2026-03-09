@@ -5,7 +5,6 @@ import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.model.RequestMedia;
 import com.floodrescue.backend.citizen.repository.RequestMediaRepository;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
-import com.floodrescue.backend.citizen.service.RequestMediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -81,8 +80,7 @@ public class RequestMediaServiceImpl implements RequestMediaService {
 
             s3Client.putObject(
                     putObjectRequest,
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
-            );
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
         } catch (IOException e) {
             throw new RuntimeException("Không thể tải tệp lên đám mây", e);
         }

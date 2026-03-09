@@ -16,5 +16,6 @@ public class VehicleResponse {
     private String licensePlate;
     private Integer capacityPerson;
     private Vehicle.VehicleStatus status;
+    private Integer currentMissionId;
+    private Integer currentRequestId;
 }
-

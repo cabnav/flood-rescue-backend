@@ -2,7 +2,6 @@ package com.floodrescue.backend.rescue.dto;
 
 import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.rescue.model.MissionAssignment;
-import com.floodrescue.backend.rescue.model.RescueTeam;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,4 +28,3 @@ public class AssignedMissionResponse {
         private Request.Priority priority;
     }
 }
-

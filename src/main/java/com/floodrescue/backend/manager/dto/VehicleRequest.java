@@ -1,6 +1,5 @@
 package com.floodrescue.backend.manager.dto;
 
-import com.floodrescue.backend.manager.model.Vehicle;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,8 +25,4 @@ public class VehicleRequest {
     @NotNull(message = "Capacity (persons) is required")
     @Min(value = 1, message = "Capacity must be at least 1")
     private Integer capacityPerson;
-
-    @NotNull(message = "Status is required")
-    private Vehicle.VehicleStatus status;
 }
-

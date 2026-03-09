@@ -31,5 +31,4 @@ public class DashboardSummaryResponse {
     private long totalVehicles;
     private long vehiclesAvailable;
     private long vehiclesInUse;
-    private long vehiclesMaintenance;
 }

@@ -13,5 +13,4 @@ public class CreateVehicleRequest {
     private String model;
     private String licensePlate;
     private Integer capacityPerson;
-    private String status;
 }

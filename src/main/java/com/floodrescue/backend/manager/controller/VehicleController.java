@@ -3,7 +3,6 @@ package com.floodrescue.backend.manager.controller;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import com.floodrescue.backend.manager.dto.VehicleRequest;
 import com.floodrescue.backend.manager.dto.VehicleResponse;
-import com.floodrescue.backend.manager.dto.VehicleStatusUpdateRequest;
 import com.floodrescue.backend.manager.model.Vehicle.VehicleStatus;
 import com.floodrescue.backend.manager.service.VehicleService;
 import jakarta.validation.Valid;
@@ -53,22 +52,6 @@ public class VehicleController {
     public ResponseEntity<ApiResponse<Void>> deleteVehicle(@PathVariable Integer id) {
         vehicleService.deleteVehicle(id);
         return ResponseEntity.ok(ApiResponse.success("Vehicle deleted successfully", null));
-    }
-
-    @PutMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicleStatus(
-            @PathVariable Integer id,
-            @Valid @RequestBody VehicleStatusUpdateRequest request) {
-        VehicleStatus newStatus;
-        try {
-            newStatus = VehicleStatus.valueOf(request.getStatus());
-        } catch (IllegalArgumentException ex) {
-            throw new com.floodrescue.backend.common.exception.BadRequestException(
-                    "Invalid vehicle status: " + request.getStatus());
-        }
-
-        VehicleResponse response = vehicleService.updateStatus(id, newStatus);
-        return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
     }
 
     @GetMapping("/status/{status}")

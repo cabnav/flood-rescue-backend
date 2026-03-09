@@ -42,6 +42,7 @@ build/
 *.md
 !README.md
 !DB_MIGRATION_ALERT.md
+!NHI_FINAL_TASKS_HANDOFF.md
 *.txt
 *.resolved
 

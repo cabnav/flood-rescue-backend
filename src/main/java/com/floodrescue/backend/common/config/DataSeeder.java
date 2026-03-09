@@ -373,7 +373,7 @@ public class DataSeeder implements CommandLineRunner {
         vehicle3.setModel("Ambulance A1");
         vehicle3.setLicensePlate("VA-003");
         vehicle3.setCapacityPerson(4);
-        vehicle3.setStatus(Vehicle.VehicleStatus.MAINTENANCE);
+        vehicle3.setStatus(Vehicle.VehicleStatus.AVAILABLE);
         vehicleRepository.save(vehicle3);
     }
 

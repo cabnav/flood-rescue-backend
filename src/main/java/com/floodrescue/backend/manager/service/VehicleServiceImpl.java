@@ -4,11 +4,14 @@ import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.manager.dto.VehicleRequest;
 import com.floodrescue.backend.manager.dto.VehicleResponse;
 import com.floodrescue.backend.manager.model.Vehicle;
+import com.floodrescue.backend.manager.repository.MissionVehicleRepository;
 import com.floodrescue.backend.manager.repository.VehicleRepository;
+import com.floodrescue.backend.rescue.model.Mission;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -16,6 +19,7 @@ import java.util.List;
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
+    private final MissionVehicleRepository missionVehicleRepository;
 
     @Override
     public VehicleResponse createVehicle(VehicleRequest request) {
@@ -26,7 +30,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setModel(request.getModel());
         vehicle.setLicensePlate(request.getLicensePlate());
         vehicle.setCapacityPerson(request.getCapacityPerson());
-        vehicle.setStatus(request.getStatus());
+        vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
 
         Vehicle saved = vehicleRepository.save(vehicle);
         return mapToResponse(saved);
@@ -60,7 +64,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setModel(request.getModel());
         vehicle.setLicensePlate(request.getLicensePlate());
         vehicle.setCapacityPerson(request.getCapacityPerson());
-        vehicle.setStatus(request.getStatus());
+        // Do not update status from request
 
         Vehicle updated = vehicleRepository.save(vehicle);
         return mapToResponse(updated);
@@ -80,16 +84,6 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    public VehicleResponse updateStatus(Integer id, Vehicle.VehicleStatus newStatus) {
-        Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
-
-        vehicle.setStatus(newStatus);
-        Vehicle updated = vehicleRepository.save(vehicle);
-        return mapToResponse(updated);
-    }
-
-    @Override
     public List<VehicleResponse> getVehiclesByStatus(Vehicle.VehicleStatus status) {
         return vehicleRepository.findByStatus(status).stream()
                 .map(this::mapToResponse)
@@ -103,6 +97,33 @@ public class VehicleServiceImpl implements VehicleService {
 
     private VehicleResponse mapToResponse(Vehicle vehicle) {
         Integer depotId = vehicle.getDepot() != null ? vehicle.getDepot().getDepotId() : null;
+        Integer currentMissionId = null;
+        Integer currentRequestId = null;
+
+        if (vehicle.getStatus() == Vehicle.VehicleStatus.IN_USE) {
+            List<com.floodrescue.backend.manager.model.MissionVehicle> missionVehicles = missionVehicleRepository
+                    .findByVehicleVehicleId(vehicle.getVehicleId());
+            if (missionVehicles != null && !missionVehicles.isEmpty()) {
+                // Get the most recent mission assignment
+                com.floodrescue.backend.manager.model.MissionVehicle activeAssignment = missionVehicles.stream()
+                        .max(Comparator.comparing(mv -> mv.getMission().getId()))
+                        .orElse(null);
+
+                if (activeAssignment != null && activeAssignment.getMission() != null) {
+                    Mission mission = activeAssignment.getMission();
+
+                    // Verify if the mission is actually active (not completed/cancelled)
+                    if (mission.getStatus() != Mission.MissionStatus.COMPLETED &&
+                            mission.getStatus() != Mission.MissionStatus.CANCELLED) {
+                        currentMissionId = mission.getId();
+                        if (mission.getRequest() != null) {
+                            currentRequestId = mission.getRequest().getId();
+                        }
+                    }
+                }
+            }
+        }
+
         return new VehicleResponse(
                 vehicle.getVehicleId(),
                 depotId,
@@ -110,6 +131,8 @@ public class VehicleServiceImpl implements VehicleService {
                 vehicle.getModel(),
                 vehicle.getLicensePlate(),
                 vehicle.getCapacityPerson(),
-                vehicle.getStatus());
+                vehicle.getStatus(),
+                currentMissionId,
+                currentRequestId);
     }
 }

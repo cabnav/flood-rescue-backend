@@ -17,8 +17,6 @@ public interface VehicleService {
 
     void deleteVehicle(Integer id);
 
-    VehicleResponse updateStatus(Integer id, Vehicle.VehicleStatus newStatus);
-
     List<VehicleResponse> getVehiclesByStatus(Vehicle.VehicleStatus status);
 
     boolean isAnyVehicleAvailable();
