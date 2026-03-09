@@ -9,4 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MissionStatusUpdateRequest {
     private String status;
+    private Integer peopleRescued;
+    private String summary;
+    private String obstacles;
 }

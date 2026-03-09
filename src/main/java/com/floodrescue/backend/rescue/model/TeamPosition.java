@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 
 @Entity
@@ -22,11 +23,11 @@ public class TeamPosition {
     @JoinColumn(name = "team_id", nullable = false)
     private RescueTeam team;
 
-    @Column(name = "latitude", nullable = false)
-    private Integer latitude;
+    @Column(name = "latitude", precision = 10, scale = 8, nullable = false)
+    private BigDecimal latitude;
 
-    @Column(name = "longitude", nullable = false)
-    private Integer longitude;
+    @Column(name = "longitude", precision = 11, scale = 8, nullable = false)
+    private BigDecimal longitude;
 
     @Column(name = "recorded_at")
     private LocalTime recordedAt;

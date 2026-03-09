@@ -16,4 +16,5 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     List<User> findByIsActive(Boolean isActive);
     List<User> findByIsActiveFalseAndRole_NameIn(Collection<String> roleNames);
+    List<User> findByRole_NameIgnoreCaseAndIsActiveTrue(String roleName);
 }
