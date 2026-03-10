@@ -364,6 +364,22 @@ public class MissionServiceImpl implements MissionService {
         response.setStartTime(mission.getStartTime());
         response.setEndTime(mission.getEndTime());
         response.setCreatedAt(mission.getCreatedAt());
+
+        // Fetch associated vehicles for this mission
+        List<MissionVehicle> missionVehicles = missionVehicleRepository.findByMissionId(mission.getId());
+        if (missionVehicles != null && !missionVehicles.isEmpty()) {
+            List<MissionDetailResponse.VehicleInfo> vehicleInfos = missionVehicles.stream()
+                    .map(MissionVehicle::getVehicle)
+                    .filter(v -> v != null)
+                    .map(v -> new MissionDetailResponse.VehicleInfo(
+                            v.getVehicleId(),
+                            v.getType(),
+                            v.getModel(),
+                            v.getLicensePlate()))
+                    .collect(Collectors.toList());
+            response.setVehicles(vehicleInfos);
+        }
+
         return response;
     }
 
