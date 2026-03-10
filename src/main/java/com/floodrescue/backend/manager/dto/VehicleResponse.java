@@ -18,4 +18,6 @@ public class VehicleResponse {
     private Vehicle.VehicleStatus status;
     private Integer currentMissionId;
     private Integer currentRequestId;
+    private Integer currentTeamId;
+    private String currentTeamName;
 }

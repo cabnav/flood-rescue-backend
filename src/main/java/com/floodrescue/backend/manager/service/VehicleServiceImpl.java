@@ -8,6 +8,9 @@ import com.floodrescue.backend.manager.repository.MissionVehicleRepository;
 import com.floodrescue.backend.manager.repository.VehicleRepository;
 import com.floodrescue.backend.rescue.model.Mission;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
+import com.floodrescue.backend.rescue.repository.MissionAssignmentRepository;
+import com.floodrescue.backend.rescue.model.MissionAssignment;
+import com.floodrescue.backend.rescue.model.RescueTeam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +23,7 @@ public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final MissionVehicleRepository missionVehicleRepository;
+    private final MissionAssignmentRepository missionAssignmentRepository;
 
     @Override
     public VehicleResponse createVehicle(VehicleRequest request) {
@@ -99,18 +103,20 @@ public class VehicleServiceImpl implements VehicleService {
         Integer depotId = vehicle.getDepot() != null ? vehicle.getDepot().getDepotId() : null;
         Integer currentMissionId = null;
         Integer currentRequestId = null;
+        Integer currentTeamId = null;
+        String currentTeamName = null;
 
         if (vehicle.getStatus() == Vehicle.VehicleStatus.IN_USE) {
             List<com.floodrescue.backend.manager.model.MissionVehicle> missionVehicles = missionVehicleRepository
                     .findByVehicleVehicleId(vehicle.getVehicleId());
             if (missionVehicles != null && !missionVehicles.isEmpty()) {
                 // Get the most recent mission assignment
-                com.floodrescue.backend.manager.model.MissionVehicle activeAssignment = missionVehicles.stream()
+                com.floodrescue.backend.manager.model.MissionVehicle activeMvAssignment = missionVehicles.stream()
                         .max(Comparator.comparing(mv -> mv.getMission().getId()))
                         .orElse(null);
 
-                if (activeAssignment != null && activeAssignment.getMission() != null) {
-                    Mission mission = activeAssignment.getMission();
+                if (activeMvAssignment != null && activeMvAssignment.getMission() != null) {
+                    Mission mission = activeMvAssignment.getMission();
 
                     // Verify if the mission is actually active (not completed/cancelled)
                     if (mission.getStatus() != Mission.MissionStatus.COMPLETED &&
@@ -118,6 +124,22 @@ public class VehicleServiceImpl implements VehicleService {
                         currentMissionId = mission.getId();
                         if (mission.getRequest() != null) {
                             currentRequestId = mission.getRequest().getId();
+                        }
+
+                        // Get the Rescue Team assigned to this active mission
+                        List<MissionAssignment> assignments = missionAssignmentRepository
+                                .findByMission_Id(mission.getId());
+                        if (assignments != null && !assignments.isEmpty()) {
+                            // Find an active assignment
+                            MissionAssignment activeTeamAssignment = assignments.stream()
+                                    .filter(a -> a.getStatus() == MissionAssignment.AssignmentStatus.ACCEPTED)
+                                    .findFirst()
+                                    .orElse(null);
+
+                            if (activeTeamAssignment != null && activeTeamAssignment.getRescueTeam() != null) {
+                                currentTeamId = activeTeamAssignment.getRescueTeam().getId();
+                                currentTeamName = activeTeamAssignment.getRescueTeam().getName();
+                            }
                         }
                     }
                 }
@@ -133,6 +155,8 @@ public class VehicleServiceImpl implements VehicleService {
                 vehicle.getCapacityPerson(),
                 vehicle.getStatus(),
                 currentMissionId,
-                currentRequestId);
+                currentRequestId,
+                currentTeamId,
+                currentTeamName);
     }
 }
