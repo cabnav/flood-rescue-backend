@@ -50,6 +50,7 @@ public class Mission {
         IN_PROGRESS,
         ARRIVED,
         COMPLETED,
+        FAILED,
         CANCELLED
     }
 }

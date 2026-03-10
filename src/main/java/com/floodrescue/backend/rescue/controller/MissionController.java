@@ -63,6 +63,21 @@ public class MissionController {
         return ResponseEntity.ok(ApiResponse.success("Nhóm được giao nhiệm vụ thành công", response));
     }
 
+    /**
+     * API gán vật phẩm/vật tư hỗ trợ cho mission để đội đi phân phối.
+     * Mỗi lần gọi sẽ trừ kho, lưu lịch sử vào inventory_transactions, và lưu vào mission_supplies.
+     */
+    @PostMapping("/{id}/supplies")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','MANAGER')")
+    public ResponseEntity<ApiResponse<MissionDetailResponse>> assignSuppliesToMission(
+            @PathVariable Integer id,
+            @Valid @RequestBody AssignSuppliesRequest request) {
+        MissionDetailResponse response = missionService.assignSuppliesToMission(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Gán vật tư thành công", response));
+    }
+
+
+
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'ADMIN', 'RESCUE_TEAM')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> updateMissionStatus(

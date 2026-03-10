@@ -8,15 +8,18 @@ import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.common.exception.UnauthorizedAccessException;
 import com.floodrescue.backend.manager.model.Inventory;
+import com.floodrescue.backend.manager.model.InventoryTransaction;
 import com.floodrescue.backend.manager.model.MissionSupply;
 import com.floodrescue.backend.manager.model.MissionVehicle;
 import com.floodrescue.backend.manager.model.Vehicle;
 import com.floodrescue.backend.manager.repository.InventoryRepository;
+import com.floodrescue.backend.manager.repository.InventoryTransactionRepository;
 import com.floodrescue.backend.manager.repository.MissionSupplyRepository;
 import com.floodrescue.backend.manager.repository.MissionVehicleRepository;
 import com.floodrescue.backend.manager.repository.VehicleRepository;
 import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
+import com.floodrescue.backend.rescue.dto.AssignMissionWithResourcesRequest;
 import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
 import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
@@ -59,6 +62,7 @@ public class MissionServiceImpl implements MissionService {
     private final MissionVehicleRepository missionVehicleRepository;
     private final InventoryRepository inventoryRepository;
     private final MissionSupplyRepository missionSupplyRepository;
+    private final InventoryTransactionRepository inventoryTransactionRepository;
     private final NotificationService notificationService;
     private final ReportRepository reportRepository;
 
@@ -162,7 +166,9 @@ public class MissionServiceImpl implements MissionService {
         if (newStatus == Mission.MissionStatus.ARRIVED) {
             linkedRequest.setStatus(Request.RequestStatus.ARRIVED);
         }
-        if ((newStatus == Mission.MissionStatus.COMPLETED || newStatus == Mission.MissionStatus.CANCELLED)
+        if ((newStatus == Mission.MissionStatus.COMPLETED
+                || newStatus == Mission.MissionStatus.CANCELLED
+                || newStatus == Mission.MissionStatus.FAILED)
                 && mission.getEndTime() == null) {
             mission.setEndTime(now);
         }
@@ -185,12 +191,18 @@ public class MissionServiceImpl implements MissionService {
             } else if (actorIsRescueTeam) {
                 notifyCoordinatorsForCompletion(saved, linkedRequest);
             }
+        } else if (newStatus == Mission.MissionStatus.CANCELLED || newStatus == Mission.MissionStatus.FAILED) {
+            // Idempotent refund: only rows returned=false will be refunded
+            refundSuppliesForMission(saved);
+            releaseVehiclesForMission(saved);
         } else if (actorIsRescueTeam) {
             notifyCitizen(linkedRequest, newStatus);
         }
 
         return mapToResponse(saved);
     }
+
+    // refund is idempotent via MissionSupply.returned flag
 
     @Override
     public List<AssignedMissionResponse> getMissionsAssignedToCurrentRescuer() {
@@ -323,15 +335,28 @@ public class MissionServiceImpl implements MissionService {
         }
 
         // 4. Deduct quantity from inventory
-        inventory.setQuantity(inventory.getQuantity() - request.getQuantity());
+        int beforeQuantity = inventory.getQuantity();
+        int afterQuantity = beforeQuantity - request.getQuantity();
+        inventory.setQuantity(afterQuantity);
         inventory.setLastUpdate(LocalDateTime.now());
         inventoryRepository.save(inventory);
+
+        // 4b. Log inventory transaction (OUT)
+        InventoryTransaction transaction = new InventoryTransaction();
+        transaction.setInventory(inventory);
+        transaction.setTransactionType(InventoryTransaction.TransactionType.OUT);
+        transaction.setQuantity(request.getQuantity());
+        transaction.setBeforeQuantity(beforeQuantity);
+        transaction.setAfterQuantity(afterQuantity);
+        transaction.setUser(null);
+        inventoryTransactionRepository.save(transaction);
 
         // 5. Create MissionSupply junction record
         MissionSupply missionSupply = new MissionSupply();
         missionSupply.setMission(mission);
         missionSupply.setInventory(inventory);
         missionSupply.setQuantity(request.getQuantity());
+        missionSupply.setReturned(false);
         missionSupplyRepository.save(missionSupply);
 
         return mapToResponse(mission);
@@ -349,6 +374,40 @@ public class MissionServiceImpl implements MissionService {
                 vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
                 vehicleRepository.save(vehicle);
             }
+        }
+    }
+
+    /**
+     * Refund supplies assigned to a mission back to inventory and log IN transactions.
+     * Only refunds MissionSupply rows where returned=false, then marks returned=true.
+     */
+    private void refundSuppliesForMission(Mission mission) {
+        List<MissionSupply> supplies = missionSupplyRepository.findByMission_IdAndReturnedFalse(mission.getId());
+        for (MissionSupply ms : supplies) {
+            Inventory inv = ms.getInventory();
+            if (inv == null) {
+                continue;
+            }
+
+            int beforeQuantity = inv.getQuantity();
+            int qty = ms.getQuantity();
+            int afterQuantity = beforeQuantity + qty;
+
+            inv.setQuantity(afterQuantity);
+            inv.setLastUpdate(LocalDateTime.now());
+            inventoryRepository.save(inv);
+
+            InventoryTransaction transaction = new InventoryTransaction();
+            transaction.setInventory(inv);
+            transaction.setTransactionType(InventoryTransaction.TransactionType.IN);
+            transaction.setQuantity(qty);
+            transaction.setBeforeQuantity(beforeQuantity);
+            transaction.setAfterQuantity(afterQuantity);
+            transaction.setUser(null);
+            inventoryTransactionRepository.save(transaction);
+
+            ms.setReturned(true);
+            missionSupplyRepository.save(ms);
         }
     }
 

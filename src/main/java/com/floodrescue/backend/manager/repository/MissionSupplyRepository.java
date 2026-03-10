@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MissionSupplyRepository extends JpaRepository<MissionSupply, Integer> {
     List<MissionSupply> findByMissionId(Integer missionId);
+
+    List<MissionSupply> findByMission_IdAndReturnedFalse(Integer missionId);
 }
