@@ -13,6 +13,7 @@ import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
 import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
 import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
+import com.floodrescue.backend.rescue.dto.CurrentTeamMissionResponse;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
@@ -85,6 +86,22 @@ public class MissionServiceImpl implements MissionService {
     public List<MissionDetailResponse> getAllMissions() {
         return missionRepository.findAll().stream()
                 .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CurrentTeamMissionResponse> getActiveTeamMissions() {
+        List<Mission.MissionStatus> activeStatuses = List.of(
+                Mission.MissionStatus.ASSIGNED,
+                Mission.MissionStatus.IN_PROGRESS,
+                Mission.MissionStatus.ARRIVED
+        );
+
+        return missionAssignmentRepository
+                .findByStatusAndMission_StatusIn(MissionAssignment.AssignmentStatus.ACCEPTED, activeStatuses)
+                .stream()
+                .map(this::mapToCurrentTeamMissionResponse)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -503,6 +520,36 @@ public class MissionServiceImpl implements MissionService {
             requestInfo.setLatitude(request.getLatitude());
             requestInfo.setLongitude(request.getLongitude());
             requestInfo.setPriority(request.getPriority());
+            response.setRequest(requestInfo);
+        }
+
+        return response;
+    }
+
+    private CurrentTeamMissionResponse mapToCurrentTeamMissionResponse(MissionAssignment assignment) {
+        if (assignment == null || assignment.getMission() == null || assignment.getRescueTeam() == null) {
+            return null;
+        }
+
+        Mission mission = assignment.getMission();
+        RescueTeam team = assignment.getRescueTeam();
+
+        CurrentTeamMissionResponse response = new CurrentTeamMissionResponse();
+        response.setAssignmentId(assignment.getId());
+        response.setAssignmentStatus(assignment.getStatus());
+        response.setRescueTeamId(team.getId());
+        response.setRescueTeamName(team.getName());
+        response.setRescueTeamStatus(team.getStatus());
+        response.setMission(mapToResponse(mission));
+
+        Request request = mission.getRequest();
+        if (request != null) {
+            CurrentTeamMissionResponse.RequestInfo requestInfo = new CurrentTeamMissionResponse.RequestInfo(
+                    request.getId(),
+                    request.getLatitude(),
+                    request.getLongitude(),
+                    request.getPriority()
+            );
             response.setRequest(requestInfo);
         }
 
