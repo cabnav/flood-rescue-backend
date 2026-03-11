@@ -1,6 +1,8 @@
 package com.floodrescue.backend.rescue.controller;
 
 import com.floodrescue.backend.common.dto.ApiResponse;
+import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
+import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
 import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
@@ -74,5 +76,23 @@ public class MissionController {
     ) {
         MissionDetailResponse response = missionService.respondToMissionAssignment(assignmentId, request);
         return ResponseEntity.ok(ApiResponse.success("Phân công đã được phản hồi thành công", response));
+    }
+
+    @PostMapping("/{id}/vehicles")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
+    public ResponseEntity<ApiResponse<MissionDetailResponse>> assignVehicleToMission(
+            @PathVariable Integer id,
+            @RequestBody AssignVehicleRequest request) {
+        MissionDetailResponse response = missionService.assignVehicleToMission(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Phương tiện đã được gán thành công", response));
+    }
+
+    @PostMapping("/{id}/supplies")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
+    public ResponseEntity<ApiResponse<MissionDetailResponse>> assignSuppliesToMission(
+            @PathVariable Integer id,
+            @RequestBody AssignSuppliesRequest request) {
+        MissionDetailResponse response = missionService.assignSuppliesToMission(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Vật tư đã được cấp phát thành công", response));
     }
 }
