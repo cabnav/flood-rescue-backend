@@ -20,6 +20,7 @@ public class MissionDetailResponse {
     private LocalDateTime endTime;
     private LocalDateTime createdAt;
     private List<VehicleInfo> vehicles;
+    private List<SupplyInfo> supplies;
 
     @Data
     @NoArgsConstructor
@@ -29,5 +30,14 @@ public class MissionDetailResponse {
         private String type;
         private String model;
         private String licensePlate;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SupplyInfo {
+        private Integer inventoryId;
+        private String itemName;
+        private Integer quantity;
     }
 }

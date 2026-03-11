@@ -294,7 +294,7 @@ public class MissionServiceImpl implements MissionService {
         MissionVehicle missionVehicle = new MissionVehicle();
         missionVehicle.setMission(mission);
         missionVehicle.setVehicle(vehicle);
-        missionVehicleRepository.save(missionVehicle);
+        missionVehicleRepository.saveAndFlush(missionVehicle);
 
         return mapToResponse(mission);
     }
@@ -335,7 +335,7 @@ public class MissionServiceImpl implements MissionService {
         missionSupply.setMission(mission);
         missionSupply.setInventory(inventory);
         missionSupply.setQuantity(request.getQuantity());
-        missionSupplyRepository.save(missionSupply);
+        missionSupplyRepository.saveAndFlush(missionSupply);
 
         return mapToResponse(mission);
     }
@@ -378,6 +378,19 @@ public class MissionServiceImpl implements MissionService {
                             v.getLicensePlate()))
                     .collect(Collectors.toList());
             response.setVehicles(vehicleInfos);
+        }
+
+        // Fetch associated supplies for this mission
+        List<MissionSupply> missionSupplies = missionSupplyRepository.findByMissionId(mission.getId());
+        if (missionSupplies != null && !missionSupplies.isEmpty()) {
+            List<MissionDetailResponse.SupplyInfo> supplyInfos = missionSupplies.stream()
+                    .filter(ms -> ms.getInventory() != null)
+                    .map(ms -> new MissionDetailResponse.SupplyInfo(
+                            ms.getInventory().getId(),
+                            ms.getInventory().getItem() != null ? ms.getInventory().getItem().getName() : null,
+                            ms.getQuantity()))
+                    .collect(Collectors.toList());
+            response.setSupplies(supplyInfos);
         }
 
         return response;
