@@ -43,6 +43,7 @@ public class WarehouseController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
     @GetMapping("/{id}/inventory")
     public ResponseEntity<ApiResponse<WarehouseInventoryResponse>> getWarehouseInventory(@PathVariable Integer id) {
         WarehouseInventoryResponse response = warehouseService.getWarehouseInventory(id);

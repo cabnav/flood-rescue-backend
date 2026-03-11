@@ -29,6 +29,7 @@ public class VehicleController {
         return ResponseEntity.ok(ApiResponse.success("Vehicle created successfully", response));
     }
 
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<VehicleResponse>> getVehicleById(@PathVariable Integer id) {
         VehicleResponse response = vehicleService.getVehicleById(id);
@@ -71,6 +72,7 @@ public class VehicleController {
         return ResponseEntity.ok(ApiResponse.success("Status updated successfully", response));
     }
 
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
     @GetMapping("/status/{status}")
     public ResponseEntity<ApiResponse<List<VehicleResponse>>> getVehiclesByStatus(@PathVariable String status) {
         VehicleStatus vehicleStatus;
