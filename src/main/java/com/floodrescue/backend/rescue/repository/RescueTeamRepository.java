@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface RescueTeamRepository extends JpaRepository<RescueTeam, Integer> {
-    List<RescueTeam> findByStatus(String status);
+    List<RescueTeam> findByStatus(RescueTeam.TeamStatus status);
 }

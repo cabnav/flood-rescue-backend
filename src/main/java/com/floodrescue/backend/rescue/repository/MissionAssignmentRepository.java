@@ -15,5 +15,6 @@ public interface MissionAssignmentRepository extends JpaRepository<MissionAssign
             Integer rescueTeamId,
             MissionAssignment.AssignmentStatus status
     );
-}
 
+    List<MissionAssignment> findByMission_Id(Integer missionId);
+}

@@ -185,6 +185,7 @@ public class MissionServiceImpl implements MissionService {
             if (completingNow) {
                 createCompletionReport(saved, actor, request);
                 releaseVehiclesForMission(saved);
+                activateRescueTeamsForMission(saved);
             }
             if (actorIsCoordinator) {
                 notifyCitizenCompletion(linkedRequest, saved);
@@ -215,6 +216,7 @@ public class MissionServiceImpl implements MissionService {
                         MissionAssignment.AssignmentStatus.ACCEPTED);
 
         return assignments.stream()
+                // exclude completed missions
                 .filter(a -> a.getMission() == null
                         || a.getMission().getStatus() != Mission.MissionStatus.COMPLETED)
                 .map(this::mapToAssignedMissionResponse)
@@ -373,6 +375,20 @@ public class MissionServiceImpl implements MissionService {
             if (vehicle != null && vehicle.getStatus() == Vehicle.VehicleStatus.IN_USE) {
                 vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
                 vehicleRepository.save(vehicle);
+            }
+        }
+    }
+
+    private void activateRescueTeamsForMission(Mission mission) {
+        List<MissionAssignment> assignments = missionAssignmentRepository.findByMission_Id(mission.getId());
+        if (assignments == null || assignments.isEmpty()) {
+            return;
+        }
+        for (MissionAssignment assignment : assignments) {
+            RescueTeam team = assignment.getRescueTeam();
+            if (team != null && team.getStatus() == RescueTeam.TeamStatus.BUSY) {
+                team.setStatus(RescueTeam.TeamStatus.ACTIVE);
+                rescueTeamRepository.save(team);
             }
         }
     }
