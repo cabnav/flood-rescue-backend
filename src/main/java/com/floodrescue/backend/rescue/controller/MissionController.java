@@ -54,6 +54,13 @@ public class MissionController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
+    @GetMapping("/active-teams")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','ADMIN')")
+    public ResponseEntity<ApiResponse<List<CurrentTeamMissionResponse>>> getActiveTeamMissions() {
+        List<CurrentTeamMissionResponse> responses = missionService.getActiveTeamMissions();
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
     @PutMapping("/{id}/assign-team")
     @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR')")
     public ResponseEntity<ApiResponse<MissionDetailResponse>> assignMission(

@@ -1,5 +1,6 @@
 package com.floodrescue.backend.rescue.repository;
 
+import com.floodrescue.backend.rescue.model.Mission;
 import com.floodrescue.backend.rescue.model.MissionAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,8 @@ public interface MissionAssignmentRepository extends JpaRepository<MissionAssign
     );
 
     List<MissionAssignment> findByMission_Id(Integer missionId);
+
+    List<MissionAssignment> findByStatusAndMission_StatusIn(
+            MissionAssignment.AssignmentStatus status,
+            List<Mission.MissionStatus> missionStatuses);
 }

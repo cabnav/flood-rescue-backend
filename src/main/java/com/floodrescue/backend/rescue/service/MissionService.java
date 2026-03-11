@@ -5,6 +5,7 @@ import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
 import com.floodrescue.backend.rescue.dto.AssignMissionWithResourcesRequest;
 import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
 import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
+import com.floodrescue.backend.rescue.dto.CurrentTeamMissionResponse;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
@@ -17,6 +18,8 @@ public interface MissionService {
     MissionDetailResponse getMissionById(Integer id);
 
     List<MissionDetailResponse> getAllMissions();
+
+    List<CurrentTeamMissionResponse> getActiveTeamMissions();
 
     MissionDetailResponse assignMission(Integer missionId, AssignMissionRequest request);
 
@@ -43,9 +46,4 @@ public interface MissionService {
      * quantity.
      */
     MissionDetailResponse assignSuppliesToMission(Integer missionId, AssignSuppliesRequest request);
-
-    /**
-     * Assign mission, vehicle and supplies in a single transaction.
-     */
-
 }
