@@ -2,12 +2,12 @@ package com.floodrescue.backend.rescue.dto;
 
 import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.rescue.model.MissionAssignment;
-import com.floodrescue.backend.rescue.model.RescueTeam;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -15,9 +15,11 @@ import java.math.BigDecimal;
 public class AssignedMissionResponse {
     private Integer assignmentId;
     private Integer rescueTeamId;
+    private String rescueTeamName;
     private MissionAssignment.AssignmentStatus status;
     private MissionDetailResponse mission;
     private RequestInfo request;
+
 
     @Data
     @NoArgsConstructor
@@ -29,4 +31,3 @@ public class AssignedMissionResponse {
         private Request.Priority priority;
     }
 }
-

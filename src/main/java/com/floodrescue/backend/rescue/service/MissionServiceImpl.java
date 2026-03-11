@@ -46,6 +46,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -436,7 +437,53 @@ public class MissionServiceImpl implements MissionService {
         response.setStartTime(mission.getStartTime());
         response.setEndTime(mission.getEndTime());
         response.setCreatedAt(mission.getCreatedAt());
+        response.setVehicles(mapMissionVehicles(mission.getId()));
+        response.setSupplies(mapMissionSupplies(mission.getId()));
         return response;
+    }
+
+    private List<MissionDetailResponse.VehicleInfo> mapMissionVehicles(Integer missionId) {
+        return missionVehicleRepository.findByMissionId(missionId).stream()
+                .map(this::mapVehicleInfo)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private MissionDetailResponse.VehicleInfo mapVehicleInfo(MissionVehicle mv) {
+        if (mv == null || mv.getVehicle() == null) {
+            return null;
+        }
+        return new MissionDetailResponse.VehicleInfo(
+                mv.getId(),
+                mv.getVehicle().getVehicleId(),
+                mv.getVehicle().getType(),
+                mv.getVehicle().getModel(),
+                mv.getVehicle().getLicensePlate(),
+                mv.getVehicle().getCapacityPerson(),
+                mv.getVehicle().getStatus()
+        );
+    }
+
+    private List<MissionDetailResponse.SupplyInfo> mapMissionSupplies(Integer missionId) {
+        return missionSupplyRepository.findByMission_IdAndReturnedFalse(missionId).stream()
+                .map(this::mapSupplyInfo)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private MissionDetailResponse.SupplyInfo mapSupplyInfo(MissionSupply ms) {
+        if (ms == null || ms.getInventory() == null || ms.getInventory().getItem() == null) {
+            return null;
+        }
+        return new MissionDetailResponse.SupplyInfo(
+                ms.getId(),
+                ms.getInventory().getId(),
+                ms.getInventory().getItem().getId(),
+                ms.getInventory().getItem().getName(),
+                ms.getInventory().getItem().getItemType(),
+                ms.getQuantity(),
+                ms.getInventory().getWarehouse() != null ? ms.getInventory().getWarehouse().getId() : null
+        );
     }
 
     private AssignedMissionResponse mapToAssignedMissionResponse(MissionAssignment assignment) {
@@ -447,9 +494,17 @@ public class MissionServiceImpl implements MissionService {
         response.setAssignmentId(assignment.getId());
         if (assignment.getRescueTeam() != null) {
             response.setRescueTeamId(assignment.getRescueTeam().getId());
+            response.setRescueTeamName(assignment.getRescueTeam().getName());
         }
         response.setStatus(assignment.getStatus());
-        response.setMission(mapToResponse(mission));
+
+        MissionDetailResponse missionDetail = mapToResponse(mission);
+        List<MissionDetailResponse.VehicleInfo> vehicleInfos = missionDetail.getVehicles();
+        List<MissionDetailResponse.SupplyInfo> supplyInfos = missionDetail.getSupplies();
+        missionDetail.setVehicles(vehicleInfos);
+        missionDetail.setSupplies(supplyInfos);
+
+        response.setMission(missionDetail);
 
         if (request != null) {
             AssignedMissionResponse.RequestInfo requestInfo = new AssignedMissionResponse.RequestInfo();
