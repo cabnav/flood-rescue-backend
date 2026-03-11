@@ -2,7 +2,6 @@ package com.floodrescue.backend.rescue.service;
 
 import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
-import com.floodrescue.backend.rescue.dto.AssignMissionWithResourcesRequest;
 import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
 import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
