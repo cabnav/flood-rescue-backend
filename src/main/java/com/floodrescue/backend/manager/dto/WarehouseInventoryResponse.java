@@ -17,6 +17,7 @@ public class WarehouseInventoryResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class InventoryItem {
+        private Integer iventoryId;
         private Integer itemId;
         private String itemName;
         private Integer quantity;

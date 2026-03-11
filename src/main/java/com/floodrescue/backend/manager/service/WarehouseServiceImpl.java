@@ -80,6 +80,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         response.setItems(
                 inventories.stream()
                         .map(inv -> new WarehouseInventoryResponse.InventoryItem(
+                                inv.getId(),
                                 inv.getItem().getId(),
                                 inv.getItem().getName(),
                                 inv.getQuantity()
