@@ -16,5 +16,7 @@ public class RescueTeamResponse {
     private RescueTeam.TeamStatus status;
     private Integer quantity;
     private Integer warehouseId;
+    private Double latitude;
+    private Double longitude;
+    private Double distanceToTargetKm;
 }
-

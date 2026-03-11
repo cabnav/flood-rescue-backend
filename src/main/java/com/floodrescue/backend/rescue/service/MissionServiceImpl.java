@@ -344,7 +344,7 @@ public class MissionServiceImpl implements MissionService {
         inventoryRepository.save(inventory);
 
         // 4b. Log inventory transaction (OUT)
-        InventoryTransaction transaction = new InventoryTransaction();
+         InventoryTransaction transaction = new InventoryTransaction();
         transaction.setInventory(inventory);
         transaction.setTransactionType(InventoryTransaction.TransactionType.OUT);
         transaction.setQuantity(request.getQuantity());

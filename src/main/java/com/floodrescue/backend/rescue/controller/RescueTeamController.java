@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,5 +33,12 @@ public class RescueTeamController {
         List<RescueTeamResponse> teams = rescueTeamService.getAvailableRescueTeams();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách đội cứu hộ sẵn sàng thành công", teams));
     }
-}
 
+    @GetMapping("/nearby/{requestId}")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','ADMIN')")
+    public ResponseEntity<ApiResponse<List<RescueTeamResponse>>> getNearestTeams(
+            @PathVariable Integer requestId) {
+        List<RescueTeamResponse> teams = rescueTeamService.getNearestRescueTeams(requestId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy đội cứu hộ gần nhất thành công", teams));
+    }
+}

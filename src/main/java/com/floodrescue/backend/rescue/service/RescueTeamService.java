@@ -8,5 +8,6 @@ public interface RescueTeamService {
     List<RescueTeamResponse> getAllRescueTeams();
 
     List<RescueTeamResponse> getAvailableRescueTeams();
-}
 
+    List<RescueTeamResponse> getNearestRescueTeams(Integer requestId);
+}
