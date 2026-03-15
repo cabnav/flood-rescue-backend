@@ -1,15 +1,15 @@
 package com.floodrescue.backend.rescue.controller;
 
 import com.floodrescue.backend.common.dto.ApiResponse;
+import com.floodrescue.backend.rescue.dto.CreateTeamRequest;
 import com.floodrescue.backend.rescue.dto.RescueTeamResponse;
+import com.floodrescue.backend.rescue.dto.TeamResponse;
 import com.floodrescue.backend.rescue.service.RescueTeamService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -40,5 +40,13 @@ public class RescueTeamController {
             @PathVariable Integer requestId) {
         List<RescueTeamResponse> teams = rescueTeamService.getNearestRescueTeams(requestId);
         return ResponseEntity.ok(ApiResponse.success("Lấy đội cứu hộ gần nhất thành công", teams));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<ApiResponse<TeamResponse>> createRescueTeam(
+            @Valid @RequestBody CreateTeamRequest request) {
+        TeamResponse response = rescueTeamService.createTeam(request);
+        return ResponseEntity.ok(ApiResponse.success("Tạo đội cứu hộ thành công", response));
     }
 }

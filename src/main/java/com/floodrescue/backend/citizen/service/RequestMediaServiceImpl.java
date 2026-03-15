@@ -5,7 +5,6 @@ import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.model.RequestMedia;
 import com.floodrescue.backend.citizen.repository.RequestMediaRepository;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
-import com.floodrescue.backend.citizen.service.RequestMediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -32,6 +31,7 @@ public class RequestMediaServiceImpl implements RequestMediaService {
     private String publicBaseUrl;
 
     @Override
+    @SuppressWarnings("null")
     public RequestMediaResponse uploadMedia(Integer requestId, MultipartFile file) {
 
         Request request = requestRepository.findById(requestId)
@@ -97,6 +97,7 @@ public class RequestMediaServiceImpl implements RequestMediaService {
                 .mimeType(file.getContentType())
                 .build();
 
+        @SuppressWarnings("null")
         RequestMedia saved = requestMediaRepository.save(media);
 
         return RequestMediaResponse.builder()

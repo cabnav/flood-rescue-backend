@@ -4,13 +4,16 @@ import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.common.util.DistanceCalculator;
+import com.floodrescue.backend.rescue.dto.CreateTeamRequest;
 import com.floodrescue.backend.rescue.dto.RescueTeamResponse;
+import com.floodrescue.backend.rescue.dto.TeamResponse;
 import com.floodrescue.backend.rescue.model.RescueTeam;
 import com.floodrescue.backend.rescue.model.TeamPosition;
 import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
 import com.floodrescue.backend.rescue.repository.TeamPositionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
@@ -40,6 +43,7 @@ public class RescueTeamServiceImpl implements RescueTeamService {
     }
 
     @Override
+    @Transactional
     public List<RescueTeamResponse> getNearestRescueTeams(Integer requestId) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với ID: " + requestId));
@@ -51,6 +55,25 @@ public class RescueTeamServiceImpl implements RescueTeamService {
                 .filter(resp -> resp.getLatitude() != null && resp.getLongitude() != null)
                 .sorted(Comparator.comparing(RescueTeamResponse::getDistanceToTargetKm, Comparator.nullsLast(Double::compareTo)))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public TeamResponse createTeam(CreateTeamRequest request) {
+        RescueTeam team = new RescueTeam();
+        team.setName(request.getName());
+        team.setQuantity(request.getQuantity());
+        team.setStatus(RescueTeam.TeamStatus.ACTIVE);
+        // Warehouse is left as null as per requirement
+
+        RescueTeam saved = rescueTeamRepository.save(team);
+
+        return TeamResponse.builder()
+                .id(saved.getId())
+                .name(saved.getName())
+                .status(saved.getStatus())
+                .quantity(saved.getQuantity())
+                .build();
     }
 
     private RescueTeamResponse mapToResponse(RescueTeam team) {

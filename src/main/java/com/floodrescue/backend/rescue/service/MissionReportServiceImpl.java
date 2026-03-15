@@ -30,6 +30,7 @@ public class MissionReportServiceImpl implements MissionReportService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public MissionReportResponse createReport(Integer missionId, MissionReportRequest request) {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với id: " + missionId));

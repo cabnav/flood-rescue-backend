@@ -33,6 +33,7 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public VehicleResponse getVehicleById(Integer id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
@@ -47,6 +48,7 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public VehicleResponse updateVehicle(Integer id, VehicleRequest request) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
@@ -67,6 +69,7 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public void deleteVehicle(Integer id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
@@ -80,6 +83,7 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public VehicleResponse updateStatus(Integer id, Vehicle.VehicleStatus newStatus) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
