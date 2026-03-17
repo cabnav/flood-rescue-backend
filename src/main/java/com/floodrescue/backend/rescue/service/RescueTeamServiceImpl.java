@@ -45,6 +45,9 @@ public class RescueTeamServiceImpl implements RescueTeamService {
     @Override
     @Transactional
     public List<RescueTeamResponse> getNearestRescueTeams(Integer requestId) {
+        if (requestId == null) {
+            throw new com.floodrescue.backend.common.exception.BadRequestException("Request ID must not be null");
+        }
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với ID: " + requestId));
         double targetLat = request.getLatitude().doubleValue();

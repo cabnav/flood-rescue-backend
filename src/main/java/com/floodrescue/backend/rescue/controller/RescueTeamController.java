@@ -21,14 +21,14 @@ public class RescueTeamController {
     private final RescueTeamService rescueTeamService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','ADMIN')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','ADMIN','MANAGER')")
     public ResponseEntity<ApiResponse<List<RescueTeamResponse>>> getAllRescueTeams() {
         List<RescueTeamResponse> teams = rescueTeamService.getAllRescueTeams();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách đội cứu hộ thành công", teams));
     }
 
     @GetMapping("/available")
-    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','ADMIN')")
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR','ADMIN','MANAGER')")
     public ResponseEntity<ApiResponse<List<RescueTeamResponse>>> getAvailableRescueTeams() {
         List<RescueTeamResponse> teams = rescueTeamService.getAvailableRescueTeams();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách đội cứu hộ sẵn sàng thành công", teams));

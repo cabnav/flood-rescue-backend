@@ -30,7 +30,7 @@ public class MissionDetailResponse {
     public static class VehicleInfo {
         private Integer missionVehicleId;
         private Integer vehicleId;
-        private String type;
+        private Integer vehicleTypeId;
         private String model;
         private String licensePlate;
         private Integer capacityPerson;

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateVehicleRequest {
     private Integer depotId;
-    private String type;
+    private Integer vehicleTypeId;
     private String model;
     private String licensePlate;
     private Integer capacityPerson;

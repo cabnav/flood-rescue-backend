@@ -39,6 +39,9 @@ build/
 *.log
 
 ### Local Documentation & Reports ###
+MIGRATION_VEHICLE_TYPE.sql
+VEHICLE_CATALOG_ALIGNMENT_SUMMARY.md
+VEHICLE_SWAGGER_TEST.md
 *.md
 !README.md
 !DB_MIGRATION_ALERT.md
