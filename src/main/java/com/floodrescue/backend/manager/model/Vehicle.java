@@ -24,7 +24,7 @@ public class Vehicle {
     @JoinColumn(name = "vehicle_type_id", nullable = true) // Nullable for migration
     private VehicleType vehicleType;
 
-    @Column(name = "type", insertable = false, updatable = false)
+    @Column(name = "type", nullable = true, insertable = false, updatable = false)
     private String oldType; // Temporary field for migration
 
     @Column(name = "model")
