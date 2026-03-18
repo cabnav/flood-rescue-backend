@@ -72,6 +72,7 @@ public class SecurityConfig {
                         // Cho phép Auth & Public
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/api/v1/esms/sendSMS").permitAll()
 
                         // --- THÊM DÒNG NÀY ĐỂ MỞ SWAGGER ---
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
