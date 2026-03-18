@@ -372,29 +372,35 @@ public class DataSeeder implements CommandLineRunner {
 
         Vehicle vehicle1 = new Vehicle();
         vehicle1.setDepot(null);
+        vehicle1.setType("Boat");
         vehicle1.setVehicleType(typeMap.get("thuyên"));
         vehicle1.setModel("Rescue Boat 3000");
         vehicle1.setLicensePlate("VR-001");
         vehicle1.setCapacityPerson(8);
         vehicle1.setStatus(Vehicle.VehicleStatus.AVAILABLE);
+        vehicle1.setIsActive(true);
         vehicleRepository.save(vehicle1);
 
         Vehicle vehicle2 = new Vehicle();
         vehicle2.setDepot(null);
+        vehicle2.setType("Truck");
         vehicle2.setVehicleType(typeMap.get("xe tải"));
         vehicle2.setModel("Cargo Truck X1");
         vehicle2.setLicensePlate("VT-002");
         vehicle2.setCapacityPerson(3);
         vehicle2.setStatus(Vehicle.VehicleStatus.IN_USE);
+        vehicle2.setIsActive(true);
         vehicleRepository.save(vehicle2);
 
         Vehicle vehicle3 = new Vehicle();
         vehicle3.setDepot(null);
+        vehicle3.setType("Ambulance");
         vehicle3.setVehicleType(typeMap.get("xe cứu thương"));
         vehicle3.setModel("Ambulance A1");
         vehicle3.setLicensePlate("VA-003");
         vehicle3.setCapacityPerson(4);
         vehicle3.setStatus(Vehicle.VehicleStatus.MAINTENANCE);
+        vehicle3.setIsActive(true);
         vehicleRepository.save(vehicle3);
     }
 
@@ -554,7 +560,7 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        User teamUser = userRepository.findByEmail("team@rescue.com").orElse(null);
+        User teamUser = userRepository.findByEmail("rescue.quan1.t1.m1@floodrescue.com").orElse(null);
         if (teamUser == null) {
             return;
         }

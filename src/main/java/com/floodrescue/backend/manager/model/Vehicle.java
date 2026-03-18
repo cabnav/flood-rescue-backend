@@ -20,12 +20,12 @@ public class Vehicle {
     @JoinColumn(name = "depot_id")
     private VehicleDepot depot;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_type_id", nullable = true) // Nullable for migration
-    private VehicleType vehicleType;
+    @Column(name = "type")
+    private String type;
 
-    @Column(name = "type", nullable = true, insertable = false, updatable = false)
-    private String oldType; // Temporary field for migration
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_type_id")
+    private VehicleType vehicleType;
 
     @Column(name = "model")
     private String model;
@@ -39,6 +39,9 @@ public class Vehicle {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private VehicleStatus status;
+
+    @Column(name = "is_active", nullable = false, columnDefinition = "boolean default true")
+    private Boolean isActive = true;
 
     public enum VehicleStatus {
         AVAILABLE,

@@ -15,4 +15,6 @@ public class TeamResponse {
     private String name;
     private RescueTeam.TeamStatus status;
     private Integer quantity;
+    private Integer warehouseId;
+    private String leaderName;
 }

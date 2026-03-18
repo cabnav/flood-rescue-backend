@@ -10,6 +10,8 @@ import java.util.List;
 public interface VehicleRepository extends JpaRepository<Vehicle, Integer> {
     List<Vehicle> findByStatus(Vehicle.VehicleStatus status);
 
+    List<Vehicle> findByType(String type);
+
     List<Vehicle> findByVehicleType_Name(String typeName);
 
     long countByStatus(Vehicle.VehicleStatus status);

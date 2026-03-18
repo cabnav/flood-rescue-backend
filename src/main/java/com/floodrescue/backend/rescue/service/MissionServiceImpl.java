@@ -59,7 +59,6 @@ public class MissionServiceImpl implements MissionService {
     private final NotificationService notificationService;
     private final ReportRepository reportRepository;
 
-
     @Override
     @SuppressWarnings("null")
     public MissionDetailResponse createMission(Integer requestId) {
@@ -96,8 +95,7 @@ public class MissionServiceImpl implements MissionService {
         List<Mission.MissionStatus> activeStatuses = List.of(
                 Mission.MissionStatus.ASSIGNED,
                 Mission.MissionStatus.IN_PROGRESS,
-                Mission.MissionStatus.ARRIVED
-        );
+                Mission.MissionStatus.ARRIVED);
 
         return missionAssignmentRepository
                 .findByStatusAndMission_StatusIn(MissionAssignment.AssignmentStatus.ACCEPTED, activeStatuses)
@@ -114,7 +112,8 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + missionId));
 
         RescueTeam rescueTeam = rescueTeamRepository.findById(request.getRescueTeamId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
 
         RescueTeam.TeamStatus teamStatus = rescueTeam.getStatus();
         if (teamStatus == RescueTeam.TeamStatus.BUSY) {
@@ -239,7 +238,7 @@ public class MissionServiceImpl implements MissionService {
     @Override
     @SuppressWarnings("null")
     public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
-                                                            MissionAssignmentResponseRequest request) {
+            MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
             throw new BadRequestException("Cần phải đưa ra quyết định.");
         }
@@ -249,7 +248,8 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new UnauthorizedAccessException("Người dùng không thuộc bất kỳ đội cứu hộ nào."));
 
         MissionAssignment assignment = missionAssignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ được giao với ID: " + assignmentId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy nhiệm vụ được giao với ID: " + assignmentId));
 
         if (!assignment.getRescueTeam().getId().equals(teamMember.getRescueTeam().getId())) {
             throw new UnauthorizedAccessException("Nhiệm vụ này không được giao cho nhóm của bạn");
@@ -274,7 +274,8 @@ public class MissionServiceImpl implements MissionService {
                 assignment.setDeclineReason(request.getReason());
                 break;
             default:
-                throw new BadRequestException("Quyết định không hợp lệ. Các giá trị được cho phép: ACCEPTED hoặc DECLINED");
+                throw new BadRequestException(
+                        "Quyết định không hợp lệ. Các giá trị được cho phép: ACCEPTED hoặc DECLINED");
         }
 
         missionAssignmentRepository.save(assignment);
@@ -360,7 +361,7 @@ public class MissionServiceImpl implements MissionService {
         inventoryRepository.save(inventory);
 
         // 4b. Log inventory transaction (OUT)
-         InventoryTransaction transaction = new InventoryTransaction();
+        InventoryTransaction transaction = new InventoryTransaction();
         transaction.setInventory(inventory);
         transaction.setTransactionType(InventoryTransaction.TransactionType.OUT);
         transaction.setQuantity(request.getQuantity());
@@ -410,8 +411,10 @@ public class MissionServiceImpl implements MissionService {
     }
 
     /**
-     * Refund supplies assigned to a mission back to inventory and log IN transactions.
-     * Only refunds MissionSupply rows where returned=false, then marks returned=true.
+     * Refund supplies assigned to a mission back to inventory and log IN
+     * transactions.
+     * Only refunds MissionSupply rows where returned=false, then marks
+     * returned=true.
      */
     private void refundSuppliesForMission(Mission mission) {
         List<MissionSupply> supplies = missionSupplyRepository.findByMission_IdAndReturnedFalse(mission.getId());
@@ -471,12 +474,12 @@ public class MissionServiceImpl implements MissionService {
         return new MissionDetailResponse.VehicleInfo(
                 mv.getId(),
                 mv.getVehicle().getVehicleId(),
-                mv.getVehicle().getVehicleType().getId(),
+                mv.getVehicle().getType(),
+                mv.getVehicle().getVehicleType() != null ? mv.getVehicle().getVehicleType().getId() : null,
                 mv.getVehicle().getModel(),
                 mv.getVehicle().getLicensePlate(),
                 mv.getVehicle().getCapacityPerson(),
-                mv.getVehicle().getStatus()
-        );
+                mv.getVehicle().getStatus());
     }
 
     private List<MissionDetailResponse.SupplyInfo> mapMissionSupplies(Integer missionId) {
@@ -497,8 +500,7 @@ public class MissionServiceImpl implements MissionService {
                 ms.getInventory().getItem().getName(),
                 ms.getInventory().getItem().getItemType(),
                 ms.getQuantity(),
-                ms.getInventory().getWarehouse() != null ? ms.getInventory().getWarehouse().getId() : null
-        );
+                ms.getInventory().getWarehouse() != null ? ms.getInventory().getWarehouse().getId() : null);
     }
 
     private AssignedMissionResponse mapToAssignedMissionResponse(MissionAssignment assignment) {
@@ -555,8 +557,7 @@ public class MissionServiceImpl implements MissionService {
                     request.getId(),
                     request.getLatitude(),
                     request.getLongitude(),
-                    request.getPriority()
-            );
+                    request.getPriority());
             response.setRequest(requestInfo);
         }
 

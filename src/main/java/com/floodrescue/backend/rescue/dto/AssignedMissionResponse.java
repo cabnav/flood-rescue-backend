@@ -20,7 +20,6 @@ public class AssignedMissionResponse {
     private MissionDetailResponse mission;
     private RequestInfo request;
 
-
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
