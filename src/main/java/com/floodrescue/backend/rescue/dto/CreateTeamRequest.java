@@ -17,4 +17,7 @@ public class CreateTeamRequest {
     @NotNull(message = "Số lượng thành viên không được để trống")
     @Min(value = 0, message = "Số lượng thành viên không được nhỏ hơn 0")
     private Integer quantity;
+
+    private Integer warehouseId;
+    private Integer leaderId;
 }

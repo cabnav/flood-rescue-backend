@@ -4,12 +4,16 @@ import com.floodrescue.backend.citizen.model.Request;
 import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.common.util.DistanceCalculator;
+import com.floodrescue.backend.auth.repository.UserRepository;
 import com.floodrescue.backend.rescue.dto.CreateTeamRequest;
 import com.floodrescue.backend.rescue.dto.RescueTeamResponse;
 import com.floodrescue.backend.rescue.dto.TeamResponse;
 import com.floodrescue.backend.rescue.model.RescueTeam;
+import com.floodrescue.backend.rescue.model.TeamMember;
 import com.floodrescue.backend.rescue.model.TeamPosition;
+import com.floodrescue.backend.manager.repository.WarehouseRepository;
 import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
+import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
 import com.floodrescue.backend.rescue.repository.TeamPositionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,8 +31,12 @@ public class RescueTeamServiceImpl implements RescueTeamService {
     private final RescueTeamRepository rescueTeamRepository;
     private final TeamPositionRepository teamPositionRepository;
     private final RequestRepository requestRepository;
+    private final WarehouseRepository warehouseRepository;
+    private final TeamMemberRepository teamMemberRepository;
+    private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<RescueTeamResponse> getAllRescueTeams() {
         return rescueTeamRepository.findAll().stream()
                 .map(this::mapToResponse)
@@ -36,6 +44,7 @@ public class RescueTeamServiceImpl implements RescueTeamService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RescueTeamResponse> getAvailableRescueTeams() {
         return rescueTeamRepository.findByStatus(RescueTeam.TeamStatus.ACTIVE).stream()
                 .map(this::mapToResponse)
@@ -62,20 +71,41 @@ public class RescueTeamServiceImpl implements RescueTeamService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public TeamResponse createTeam(CreateTeamRequest request) {
         RescueTeam team = new RescueTeam();
         team.setName(request.getName());
         team.setQuantity(request.getQuantity());
         team.setStatus(RescueTeam.TeamStatus.ACTIVE);
-        // Warehouse is left as null as per requirement
+        
+        if (request.getWarehouseId() != null) {
+            team.setWarehouse(warehouseRepository.findById(request.getWarehouseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy kho với ID: " + request.getWarehouseId())));
+        }
 
         RescueTeam saved = rescueTeamRepository.save(team);
+
+        String leaderName = "Chưa có Leader";
+        if (request.getLeaderId() != null) {
+            com.floodrescue.backend.auth.model.User leader = userRepository.findById(request.getLeaderId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Leader với ID: " + request.getLeaderId()));
+            
+            TeamMember teamMember = new TeamMember();
+            teamMember.setRescueTeam(saved);
+            teamMember.setUser(leader);
+            teamMember.setRoleInTeam("LEADER");
+            teamMemberRepository.save(teamMember);
+            
+            leaderName = leader.getFullName();
+        }
 
         return TeamResponse.builder()
                 .id(saved.getId())
                 .name(saved.getName())
                 .status(saved.getStatus())
                 .quantity(saved.getQuantity())
+                .warehouseId(Optional.ofNullable(saved.getWarehouse()).map(w -> w.getId()).orElse(null))
+                .leaderName(leaderName)
                 .build();
     }
 
@@ -83,12 +113,17 @@ public class RescueTeamServiceImpl implements RescueTeamService {
         if (team == null) {
             return null;
         }
+        String leaderName = teamMemberRepository.findByRescueTeam_IdAndRoleInTeam(team.getId(), "LEADER")
+                .map(tm -> tm.getUser().getFullName())
+                .orElse("Chưa có Leader");
+
         return RescueTeamResponse.builder()
                 .id(team.getId())
                 .name(team.getName())
                 .status(team.getStatus())
                 .quantity(team.getQuantity())
                 .warehouseId(team.getWarehouse() != null ? team.getWarehouse().getId() : null)
+                .leaderName(leaderName)
                 .build();
     }
 
@@ -100,12 +135,17 @@ public class RescueTeamServiceImpl implements RescueTeamService {
                 ? DistanceCalculator.haversineDistanceKm(lat, lng, targetLat, targetLng)
                 : null;
 
+        String leaderName = teamMemberRepository.findByRescueTeam_IdAndRoleInTeam(team.getId(), "LEADER")
+                .map(tm -> tm.getUser().getFullName())
+                .orElse("Chưa có Leader");
+
         return RescueTeamResponse.builder()
                 .id(team.getId())
                 .name(team.getName())
                 .status(team.getStatus())
                 .quantity(team.getQuantity())
                 .warehouseId(team.getWarehouse() != null ? team.getWarehouse().getId() : null)
+                .leaderName(leaderName)
                 .latitude(lat)
                 .longitude(lng)
                 .distanceToTargetKm(distanceToTarget)
