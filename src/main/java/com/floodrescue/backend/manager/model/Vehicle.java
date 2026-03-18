@@ -20,8 +20,12 @@ public class Vehicle {
     @JoinColumn(name = "depot_id")
     private VehicleDepot depot;
 
-    @Column(name = "type", nullable = false)
-    private String type; // Tham chiếu danh mục VehicleType (admin quản lý)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_type_id", nullable = true) // Nullable for migration
+    private VehicleType vehicleType;
+
+    @Column(name = "type", nullable = true, insertable = false, updatable = false)
+    private String oldType; // Temporary field for migration
 
     @Column(name = "model")
     private String model;

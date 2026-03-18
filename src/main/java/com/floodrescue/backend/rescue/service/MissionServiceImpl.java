@@ -61,6 +61,7 @@ public class MissionServiceImpl implements MissionService {
 
 
     @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse createMission(Integer requestId) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với ID: " + requestId));
@@ -76,6 +77,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse getMissionById(Integer id) {
         Mission mission = missionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + id));
@@ -106,6 +108,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse assignMission(Integer missionId, AssignMissionRequest request) {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + missionId));
@@ -140,6 +143,7 @@ public class MissionServiceImpl implements MissionService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public MissionDetailResponse updateMissionStatus(Integer id, MissionStatusUpdateRequest request) {
         if (request == null || request.getStatus() == null) {
             throw new BadRequestException("Cần có thông tin xác thực.");
@@ -233,6 +237,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
                                                             MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
@@ -291,6 +296,7 @@ public class MissionServiceImpl implements MissionService {
     // =====================================================================
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public MissionDetailResponse assignVehicleToMission(Integer missionId, AssignVehicleRequest request) {
         // 1. Fetch Mission
         Mission mission = missionRepository.findById(missionId)
@@ -324,6 +330,7 @@ public class MissionServiceImpl implements MissionService {
     // =====================================================================
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public MissionDetailResponse assignSuppliesToMission(Integer missionId, AssignSuppliesRequest request) {
         // 1. Fetch Mission
         Mission mission = missionRepository.findById(missionId)
@@ -464,7 +471,7 @@ public class MissionServiceImpl implements MissionService {
         return new MissionDetailResponse.VehicleInfo(
                 mv.getId(),
                 mv.getVehicle().getVehicleId(),
-                mv.getVehicle().getType(),
+                mv.getVehicle().getVehicleType().getId(),
                 mv.getVehicle().getModel(),
                 mv.getVehicle().getLicensePlate(),
                 mv.getVehicle().getCapacityPerson(),

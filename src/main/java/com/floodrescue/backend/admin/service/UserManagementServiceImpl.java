@@ -7,8 +7,6 @@ import com.floodrescue.backend.auth.repository.UserRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -41,6 +39,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public UserDetailResponse getUserById(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -48,6 +47,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public UserDetailResponse updateUserStatus(Integer id, UserStatusUpdateRequest request) {
         if (request == null || request.getIsActive() == null) {
             throw new BadRequestException("isActive is required");
@@ -68,6 +68,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public UserDetailResponse approveUser(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));

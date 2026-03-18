@@ -32,6 +32,7 @@ public class ReliefDistributionServiceImpl implements ReliefDistributionService 
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public ReliefDistributionResponse createDistribution(ReliefDistributionRequest request) {
         Mission mission = missionRepository.findById(request.getMissionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với id: " + request.getMissionId()));

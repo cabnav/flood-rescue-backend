@@ -3,7 +3,6 @@ package com.floodrescue.backend.citizen.service;
 import com.floodrescue.backend.citizen.dto.CreateRequestRequest;
 import com.floodrescue.backend.citizen.dto.ClassifyRequestRequest;
 import com.floodrescue.backend.citizen.dto.RequestDetailResponse;
-import com.floodrescue.backend.citizen.model.Request;
 
 import java.util.List;
 

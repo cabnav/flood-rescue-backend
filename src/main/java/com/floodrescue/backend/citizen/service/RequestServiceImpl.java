@@ -139,6 +139,7 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public RequestDetailResponse classifyRequest(Integer id, ClassifyRequestRequest requestBody) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
@@ -214,6 +215,7 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public RequestDetailResponse getRequestById(Integer id) {
         Request request = requestRepository.findByIdWithMedias(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với id: " + id));
@@ -240,6 +242,7 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public RequestDetailResponse updateRequestStatus(Integer id, String status) {
         if (status == null || status.isBlank()) {
             throw new BadRequestException("Status must not be empty");
@@ -271,6 +274,7 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public RequestDetailResponse approveRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
@@ -292,6 +296,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public RequestDetailResponse cancelRequestStatus(Integer id) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));

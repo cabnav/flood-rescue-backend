@@ -2,7 +2,6 @@ package com.floodrescue.backend.auth.service;
 
 import com.floodrescue.backend.auth.model.User;
 import com.floodrescue.backend.auth.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

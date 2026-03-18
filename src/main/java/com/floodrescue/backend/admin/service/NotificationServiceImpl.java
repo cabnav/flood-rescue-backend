@@ -47,6 +47,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public NotificationResponse getById(Integer id) {
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông báo với id: " + id));
@@ -75,6 +76,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public NotificationResponse markAsRead(Integer id) {
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông báo với id: " + id));

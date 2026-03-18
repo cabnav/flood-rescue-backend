@@ -170,6 +170,7 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException("Account is not active. Please contact admin.");
         } catch (BadCredentialsException e) {
             // 8. Nếu sai mật khẩu: Tăng failedAttempt
+            @SuppressWarnings("null")
             int newFailedAttempt = (user.getFailedAttempt() == null ? 0 : user.getFailedAttempt()) + 1;
             user.setFailedAttempt(newFailedAttempt);
 
@@ -229,6 +230,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Lưu vào database
+        @SuppressWarnings("null")
         User savedUser = userRepository.save(user);
 
         // Trả về UserProfileResponse

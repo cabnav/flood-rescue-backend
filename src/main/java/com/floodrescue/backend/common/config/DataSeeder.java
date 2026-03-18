@@ -26,6 +26,8 @@ import com.floodrescue.backend.rescue.repository.ReportRepository;
 import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
 import com.floodrescue.backend.rescue.model.TeamPosition;
 import com.floodrescue.backend.rescue.repository.TeamPositionRepository;
+import com.floodrescue.backend.manager.model.VehicleType;
+import com.floodrescue.backend.manager.repository.VehicleTypeRepository;
 import com.floodrescue.backend.admin.repository.NotificationRepository;
 import com.floodrescue.backend.admin.model.Notification;
 import org.springframework.boot.CommandLineRunner;
@@ -60,6 +62,7 @@ public class DataSeeder implements CommandLineRunner {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamPositionRepository teamPositionRepository;
     private final NotificationRepository notificationRepository;
+    private final VehicleTypeRepository vehicleTypeRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(RoleRepository roleRepository,
@@ -76,6 +79,7 @@ public class DataSeeder implements CommandLineRunner {
             TeamMemberRepository teamMemberRepository,
             TeamPositionRepository teamPositionRepository,
             NotificationRepository notificationRepository,
+            VehicleTypeRepository vehicleTypeRepository,
             PasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -91,6 +95,7 @@ public class DataSeeder implements CommandLineRunner {
         this.teamMemberRepository = teamMemberRepository;
         this.teamPositionRepository = teamPositionRepository;
         this.notificationRepository = notificationRepository;
+        this.vehicleTypeRepository = vehicleTypeRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -170,6 +175,7 @@ public class DataSeeder implements CommandLineRunner {
         // Safe seeding: No more TRUNCATE CASCADE to avoid data loss.
         seedRoles();
         seedUsers();
+        seedVehicleTypes();
         seedRequests();
         seedVehicles();
         seedHcmData();
@@ -184,6 +190,18 @@ public class DataSeeder implements CommandLineRunner {
         for (String roleName : roleNames) {
             if (!roleRepository.existsByName(roleName)) {
                 roleRepository.save(new Role(null, roleName));
+            }
+        }
+    }
+
+    private void seedVehicleTypes() {
+        String[] types = { "thuyên", "xe tải", "xe cứu thương", "Trực Thăng", "drone", "cano" };
+        for (String type : types) {
+            if (vehicleTypeRepository.findAll().stream().noneMatch(t -> t.getName().equalsIgnoreCase(type))) {
+                VehicleType vt = new VehicleType();
+                vt.setName(type);
+                vt.setStatus("ACTIVE");
+                vehicleTypeRepository.save(vt);
             }
         }
     }
@@ -349,9 +367,12 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
+        Map<String, VehicleType> typeMap = new HashMap<>();
+        vehicleTypeRepository.findAll().forEach(t -> typeMap.put(t.getName().toLowerCase(), t));
+
         Vehicle vehicle1 = new Vehicle();
         vehicle1.setDepot(null);
-        vehicle1.setType("Boat");
+        vehicle1.setVehicleType(typeMap.get("thuyên"));
         vehicle1.setModel("Rescue Boat 3000");
         vehicle1.setLicensePlate("VR-001");
         vehicle1.setCapacityPerson(8);
@@ -360,7 +381,7 @@ public class DataSeeder implements CommandLineRunner {
 
         Vehicle vehicle2 = new Vehicle();
         vehicle2.setDepot(null);
-        vehicle2.setType("Truck");
+        vehicle2.setVehicleType(typeMap.get("xe tải"));
         vehicle2.setModel("Cargo Truck X1");
         vehicle2.setLicensePlate("VT-002");
         vehicle2.setCapacityPerson(3);
@@ -369,7 +390,7 @@ public class DataSeeder implements CommandLineRunner {
 
         Vehicle vehicle3 = new Vehicle();
         vehicle3.setDepot(null);
-        vehicle3.setType("Ambulance");
+        vehicle3.setVehicleType(typeMap.get("xe cứu thương"));
         vehicle3.setModel("Ambulance A1");
         vehicle3.setLicensePlate("VA-003");
         vehicle3.setCapacityPerson(4);
