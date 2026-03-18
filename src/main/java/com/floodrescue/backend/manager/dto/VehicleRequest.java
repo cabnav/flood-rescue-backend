@@ -15,8 +15,6 @@ public class VehicleRequest {
 
     private Integer depotId;
 
-    private String type;
-
     @NotNull(message = "Vehicle type ID is required")
     private Integer vehicleTypeId;
 

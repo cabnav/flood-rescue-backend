@@ -20,9 +20,6 @@ public class Vehicle {
     @JoinColumn(name = "depot_id")
     private VehicleDepot depot;
 
-    @Column(name = "type")
-    private String type;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_type_id")
     private VehicleType vehicleType;

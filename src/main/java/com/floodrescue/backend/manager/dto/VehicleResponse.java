@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 public class VehicleResponse {
     private Integer vehicleId;
     private Integer depotId;
-    private String type;
+    private String vehicleTypeName;
     private Integer vehicleTypeId;
     private String model;
     private String licensePlate;

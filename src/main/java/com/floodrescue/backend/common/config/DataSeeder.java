@@ -372,7 +372,6 @@ public class DataSeeder implements CommandLineRunner {
 
         Vehicle vehicle1 = new Vehicle();
         vehicle1.setDepot(null);
-        vehicle1.setType("Boat");
         vehicle1.setVehicleType(typeMap.get("thuyên"));
         vehicle1.setModel("Rescue Boat 3000");
         vehicle1.setLicensePlate("VR-001");
@@ -383,7 +382,6 @@ public class DataSeeder implements CommandLineRunner {
 
         Vehicle vehicle2 = new Vehicle();
         vehicle2.setDepot(null);
-        vehicle2.setType("Truck");
         vehicle2.setVehicleType(typeMap.get("xe tải"));
         vehicle2.setModel("Cargo Truck X1");
         vehicle2.setLicensePlate("VT-002");
@@ -394,7 +392,6 @@ public class DataSeeder implements CommandLineRunner {
 
         Vehicle vehicle3 = new Vehicle();
         vehicle3.setDepot(null);
-        vehicle3.setType("Ambulance");
         vehicle3.setVehicleType(typeMap.get("xe cứu thương"));
         vehicle3.setModel("Ambulance A1");
         vehicle3.setLicensePlate("VA-003");

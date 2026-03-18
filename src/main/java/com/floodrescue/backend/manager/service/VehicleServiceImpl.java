@@ -34,7 +34,6 @@ public class VehicleServiceImpl implements VehicleService {
         Vehicle vehicle = new Vehicle();
         // Depot handling can be added later when depot management is implemented
         vehicle.setDepot(null);
-        vehicle.setType(request.getType());
         vehicle.setVehicleType(vehicleType);
         vehicle.setModel(request.getModel());
         vehicle.setLicensePlate(request.getLicensePlate());
@@ -86,7 +85,6 @@ public class VehicleServiceImpl implements VehicleService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Vehicle type not found with id: " + request.getVehicleTypeId()));
 
-        vehicle.setType(request.getType());
         vehicle.setVehicleType(vehicleType);
         vehicle.setModel(request.getModel());
         vehicle.setLicensePlate(request.getLicensePlate());
@@ -144,11 +142,12 @@ public class VehicleServiceImpl implements VehicleService {
     private VehicleResponse mapToResponse(Vehicle vehicle) {
         Integer depotId = vehicle.getDepot() != null ? vehicle.getDepot().getDepotId() : null;
         Integer vehicleTypeId = vehicle.getVehicleType() != null ? vehicle.getVehicleType().getId() : null;
+        String vehicleTypeName = vehicle.getVehicleType() != null ? vehicle.getVehicleType().getName() : null;
 
         return new VehicleResponse(
                 vehicle.getVehicleId(),
                 depotId,
-                vehicle.getType(),
+                vehicleTypeName,
                 vehicleTypeId,
                 vehicle.getModel(),
                 vehicle.getLicensePlate(),

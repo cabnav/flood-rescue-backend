@@ -474,7 +474,7 @@ public class MissionServiceImpl implements MissionService {
         return new MissionDetailResponse.VehicleInfo(
                 mv.getId(),
                 mv.getVehicle().getVehicleId(),
-                mv.getVehicle().getType(),
+                mv.getVehicle().getVehicleType() != null ? mv.getVehicle().getVehicleType().getName() : null,
                 mv.getVehicle().getVehicleType() != null ? mv.getVehicle().getVehicleType().getId() : null,
                 mv.getVehicle().getModel(),
                 mv.getVehicle().getLicensePlate(),
