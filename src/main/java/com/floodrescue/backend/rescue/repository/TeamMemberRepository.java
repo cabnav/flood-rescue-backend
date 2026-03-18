@@ -10,5 +10,7 @@ import java.util.Optional;
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Integer> {
 
     Optional<TeamMember> findFirstByUser_Id(Integer userId);
+
+    Optional<TeamMember> findByRescueTeam_IdAndRoleInTeam(Integer rescueTeam_id, String roleInTeam);
 }
 
