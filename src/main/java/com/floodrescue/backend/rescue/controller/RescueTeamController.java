@@ -3,7 +3,6 @@ package com.floodrescue.backend.rescue.controller;
 import com.floodrescue.backend.common.dto.ApiResponse;
 import com.floodrescue.backend.rescue.dto.CreateTeamRequest;
 import com.floodrescue.backend.rescue.dto.RescueTeamResponse;
-import com.floodrescue.backend.rescue.dto.TeamResponse;
 import com.floodrescue.backend.rescue.service.RescueTeamService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,9 +43,9 @@ public class RescueTeamController {
 
     @PostMapping
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<ApiResponse<TeamResponse>> createRescueTeam(
+    public ResponseEntity<ApiResponse<RescueTeamResponse>> createRescueTeam(
             @Valid @RequestBody CreateTeamRequest request) {
-        TeamResponse response = rescueTeamService.createTeam(request);
+        RescueTeamResponse response = rescueTeamService.createTeam(request);
         return ResponseEntity.ok(ApiResponse.success("Tạo đội cứu hộ thành công", response));
     }
 }
