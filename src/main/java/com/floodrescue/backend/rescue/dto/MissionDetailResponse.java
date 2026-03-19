@@ -2,6 +2,7 @@ package com.floodrescue.backend.rescue.dto;
 
 import com.floodrescue.backend.manager.model.Item;
 import com.floodrescue.backend.manager.model.Vehicle;
+import com.floodrescue.backend.manager.model.VehicleType;
 import com.floodrescue.backend.rescue.model.Mission;
 import lombok.AllArgsConstructor;
 import lombok.Data;

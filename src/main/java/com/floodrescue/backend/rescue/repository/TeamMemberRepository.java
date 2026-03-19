@@ -11,6 +11,5 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Integer>
 
     Optional<TeamMember> findFirstByUser_Id(Integer userId);
 
-    Optional<TeamMember> findByRescueTeam_IdAndRoleInTeam(Integer teamId, String role);
+    Optional<TeamMember> findByRescueTeam_IdAndRoleInTeam(Integer teamId, String roleInTeam);
 }
-
