@@ -10,6 +10,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
@@ -17,6 +20,9 @@ public class EsmsClient {
 
     private final EsmsProperties props;
     private final RestTemplate restTemplate;
+
+    private static final Duration OTP_TTL = Duration.ofMinutes(5);
+    private final Map<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
 
     @Autowired
     public EsmsClient(EsmsProperties props, RestTemplateBuilder builder) {
@@ -36,20 +42,33 @@ public class EsmsClient {
         return String.valueOf(value);
     }
 
-    /**
-     * Simple string equality check for OTP. Caller must supply the expected value (store with expiry elsewhere).
-     */
-    public boolean verifyOtp(String expectedOtp, String providedOtp) {
-        return expectedOtp != null && expectedOtp.equals(providedOtp);
+    private void storeOtp(String phone, String otp) {
+        otpStore.put(phone, new OtpEntry(otp, Instant.now().plus(OTP_TTL)));
     }
 
     /**
-     * Simple test call to verify credentials and connectivity with eSMS.
-     * @param phone Vietnamese phone number (format accepted by eSMS, e.g. 8490xxxxxxx)
-     * @return raw JSON response from eSMS
+     * Verify OTP previously sent to the given phone. Removes entry on success or expiry.
      */
+    public boolean verifyOtp(String phone, String providedOtp) {
+        OtpEntry entry = otpStore.get(phone);
+        if (entry == null) {
+            return false;
+        }
+        if (Instant.now().isAfter(entry.expiresAt())) {
+            otpStore.remove(phone);
+            return false;
+        }
+        boolean match = entry.code().equals(providedOtp);
+        if (match) {
+            otpStore.remove(phone);
+        }
+        return match;
+    }
+
+
     public String sendTestSms(String phone) {
         String otp = generateOtp();
+        storeOtp(phone, otp);
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromHttpUrl(props.getBaseUrl() + "/SendMultipleMessage_V4_get")
                 .queryParam("ApiKey", props.getApiKey())
@@ -66,4 +85,6 @@ public class EsmsClient {
         log.info("eSMS response: {}", response);
         return response;
     }
+
+    private record OtpEntry(String code, Instant expiresAt) {}
 }

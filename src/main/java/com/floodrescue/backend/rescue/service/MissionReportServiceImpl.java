@@ -137,7 +137,8 @@ public class MissionReportServiceImpl implements MissionReportService {
                 report.getPeopleRescued(),
                 report.getSummary(),
                 report.getObstacles(),
-                report.getCreatedAt());
+                report.getCreatedAt()
+        );
     }
 
     private MissionReportDetailResponse mapToDetailResponse(Report report) {
@@ -164,7 +165,8 @@ public class MissionReportServiceImpl implements MissionReportService {
                 report.getObstacles(),
                 report.getCreatedAt(),
                 mapMissionVehicles(missionId),
-                mapMissionSupplies(missionId));
+                mapMissionSupplies(missionId)
+        );
     }
 
     private List<MissionDetailResponse.VehicleInfo> mapMissionVehicles(Integer missionId) {
@@ -184,12 +186,12 @@ public class MissionReportServiceImpl implements MissionReportService {
         return new MissionDetailResponse.VehicleInfo(
                 mv.getId(),
                 mv.getVehicle().getVehicleId(),
-                mv.getVehicle().getVehicleType() != null ? mv.getVehicle().getVehicleType().getName() : null,
-                mv.getVehicle().getVehicleType() != null ? mv.getVehicle().getVehicleType().getId() : null,
+                mv.getVehicle().getType(),
                 mv.getVehicle().getModel(),
                 mv.getVehicle().getLicensePlate(),
                 mv.getVehicle().getCapacityPerson(),
-                mv.getVehicle().getStatus());
+                mv.getVehicle().getStatus()
+        );
     }
 
     private List<MissionDetailResponse.SupplyInfo> mapMissionSupplies(Integer missionId) {
@@ -213,7 +215,8 @@ public class MissionReportServiceImpl implements MissionReportService {
                 ms.getInventory().getItem().getName(),
                 ms.getInventory().getItem().getItemType(),
                 ms.getQuantity(),
-                ms.getInventory().getWarehouse() != null ? ms.getInventory().getWarehouse().getId() : null);
+                ms.getInventory().getWarehouse() != null ? ms.getInventory().getWarehouse().getId() : null
+        );
     }
 
     private User getCurrentUser() {

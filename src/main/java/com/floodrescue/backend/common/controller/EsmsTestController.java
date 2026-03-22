@@ -25,5 +25,14 @@ public class EsmsTestController {
                 "response", rawResponse
         ));
     }
-}
 
+    @PostMapping("/verifyOTP")
+    public ResponseEntity<Map<String, Object>> verifyOtp(@RequestParam String phone,
+                                                         @RequestParam String otp) {
+        boolean valid = esmsClient.verifyOtp(phone, otp);
+        return ResponseEntity.ok(Map.of(
+                "phone", phone,
+                "otpValid", valid
+        ));
+    }
+}
