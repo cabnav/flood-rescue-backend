@@ -186,7 +186,7 @@ public class MissionReportServiceImpl implements MissionReportService {
         return new MissionDetailResponse.VehicleInfo(
                 mv.getId(),
                 mv.getVehicle().getVehicleId(),
-                mv.getVehicle().getType(),
+                mv.getVehicle().getVehicleType().getId(),
                 mv.getVehicle().getModel(),
                 mv.getVehicle().getLicensePlate(),
                 mv.getVehicle().getCapacityPerson(),
