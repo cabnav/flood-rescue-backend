@@ -20,8 +20,9 @@ public class Vehicle {
     @JoinColumn(name = "depot_id")
     private VehicleDepot depot;
 
-    @Column(name = "type", nullable = false)
-    private String type; // Tham chiếu danh mục VehicleType (admin quản lý)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_type_id")
+    private VehicleType vehicleType;
 
     @Column(name = "model")
     private String model;
@@ -35,6 +36,9 @@ public class Vehicle {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private VehicleStatus status;
+
+    @Column(name = "is_active", nullable = false, columnDefinition = "boolean default true")
+    private Boolean isActive = true;
 
     public enum VehicleStatus {
         AVAILABLE,

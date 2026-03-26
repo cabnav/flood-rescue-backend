@@ -48,7 +48,9 @@ public class Mission {
         PENDING,
         ASSIGNED,
         IN_PROGRESS,
+        ARRIVED,
         COMPLETED,
+        FAILED,
         CANCELLED
     }
 }

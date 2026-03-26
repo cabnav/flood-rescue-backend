@@ -39,6 +39,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public UserDetailResponse getUserById(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -46,6 +47,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public UserDetailResponse updateUserStatus(Integer id, UserStatusUpdateRequest request) {
         if (request == null || request.getIsActive() == null) {
             throw new BadRequestException("isActive is required");
@@ -66,6 +68,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public UserDetailResponse approveUser(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));

@@ -39,12 +39,14 @@ build/
 *.log
 
 ### Local Documentation & Reports ###
-SPRINT2_*.md
-API_*.md
-BUSINESS_RULES_*.md
-PROJECT_STRUCTURE.md
-project_structure.txt
-DOC_MG01_*.md
+MIGRATION_VEHICLE_TYPE.sql
+VEHICLE_CATALOG_ALIGNMENT_SUMMARY.md
+VEHICLE_SWAGGER_TEST.md
+*.md
+!README.md
+!DB_MIGRATION_ALERT.md
+*.txt
+*.resolved
 
 ### External Materials ###
 grevo-be-material/

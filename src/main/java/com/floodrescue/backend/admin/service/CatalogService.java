@@ -35,6 +35,7 @@ public class CatalogService {
                 .toList();
     }
 
+    @SuppressWarnings("null")
     public ItemCatalogResponse getItemById(Integer id) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
@@ -53,6 +54,7 @@ public class CatalogService {
         return ItemCatalogResponse.from(item);
     }
 
+    @SuppressWarnings("null")
     public ItemCatalogResponse updateItem(Integer id, ItemCatalogRequest request) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
@@ -66,6 +68,7 @@ public class CatalogService {
         return ItemCatalogResponse.from(item);
     }
 
+    @SuppressWarnings("null")
     public void deleteItem(Integer id) {
         if (!itemRepository.existsById(id)) {
             throw new ResourceNotFoundException("Item not found with id: " + id);
@@ -86,6 +89,7 @@ public class CatalogService {
                 .toList();
     }
 
+    @SuppressWarnings("null")
     public VehicleTypeCatalogResponse getVehicleTypeById(Integer id) {
         VehicleType vehicleType = vehicleTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("VehicleType not found with id: " + id));
@@ -100,6 +104,7 @@ public class CatalogService {
         return VehicleTypeCatalogResponse.from(vehicleType);
     }
 
+    @SuppressWarnings("null")
     public VehicleTypeCatalogResponse updateVehicleType(Integer id, VehicleTypeCatalogRequest request) {
         VehicleType vehicleType = vehicleTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("VehicleType not found with id: " + id));
@@ -111,6 +116,7 @@ public class CatalogService {
         return VehicleTypeCatalogResponse.from(vehicleType);
     }
 
+    @SuppressWarnings("null")
     public void deleteVehicleType(Integer id) {
         if (!vehicleTypeRepository.existsById(id)) {
             throw new ResourceNotFoundException("VehicleType not found with id: " + id);

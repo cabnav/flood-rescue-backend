@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -48,29 +47,22 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    /*
-     * @Bean
-     * public SecurityFilterChain securityFilterChain(HttpSecurity http) throws
-     * Exception {
-     * http
-     * .cors(Customizer.withDefaults())
-     * .csrf(csrf -> csrf.disable())
-     * .sessionManagement(session ->
-     * session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-     * .authorizeHttpRequests(auth -> auth
-     * .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
-     * .requestMatchers("/api/v1/auth/**").authenticated()
-     * .requestMatchers("/api/v1/public/**").permitAll()
-     * .requestMatchers("/swagger-ui/**", "/v3/api-docs/**",
-     * "/swagger-ui.html").permitAll()
-     * .anyRequest().authenticated()
-     * )
-     * .authenticationProvider(authenticationProvider())
-     * .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-     * 
-     * return http.build();
-     * }
-     */
+    /*@Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                .requestMatchers("/api/v1/auth/**").authenticated()
+                .requestMatchers("/api/v1/public/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }*/
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -80,12 +72,14 @@ public class SecurityConfig {
                         // Cho phép Auth & Public
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/api/v1/esms/sendSMS", "/api/v1/esms/verifyOTP").permitAll()
 
                         // --- THÊM DÒNG NÀY ĐỂ MỞ SWAGGER ---
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         .requestMatchers("/api/v1/auth/**").authenticated()
-                        .anyRequest().authenticated())
+                        .anyRequest().authenticated()
+                )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

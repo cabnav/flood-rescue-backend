@@ -22,6 +22,8 @@ public interface RequestRepository extends JpaRepository<Request, Integer> {
     List<Request> findByUserIdAndStatusInAndRequestType(Integer userId, List<Request.RequestStatus> statuses,
             Request.RequestType requestType);
 
+    long countByStatus(Request.RequestStatus status);
+
     @Query("select distinct r from Request r left join fetch r.medias where r.id = :id")
     Optional<Request> findByIdWithMedias(@Param("id") Integer id);
 

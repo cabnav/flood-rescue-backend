@@ -24,5 +24,8 @@ public class RequestDetailResponse {
     private Request.RequestStatus status;
     private String requestSupplies;
     private LocalDateTime createdAt;
+
+    private Boolean feedbackSubmitted;
+    private Boolean canGiveFeedback;
     private List<RequestMediaResponse> medias;
 }

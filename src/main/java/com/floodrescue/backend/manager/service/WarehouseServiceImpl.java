@@ -32,6 +32,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     private final UserRepository userRepository;
 
     @Override
+    @SuppressWarnings("null")
     public WarehouseDetailResponse createWarehouse(com.floodrescue.backend.manager.dto.CreateWarehouseRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
@@ -45,12 +46,16 @@ public class WarehouseServiceImpl implements WarehouseService {
                         request.getStatus().toUpperCase()
                 )
         );
+        warehouse.setLatitude(request.getLatitude());
+        warehouse.setLongitude(request.getLongitude());
+        warehouse.setAddress(request.getAddress());
 
         Warehouse saved = warehouseRepository.save(warehouse);
         return mapToDetailResponse(saved);
     }
 
     @Override
+    @SuppressWarnings("null")
     public WarehouseDetailResponse getWarehouseById(Integer id) {
         Warehouse warehouse = warehouseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + id));
@@ -66,6 +71,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public WarehouseInventoryResponse getWarehouseInventory(Integer warehouseId) {
         Warehouse warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + warehouseId));
@@ -77,6 +83,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         response.setItems(
                 inventories.stream()
                         .map(inv -> new WarehouseInventoryResponse.InventoryItem(
+                                inv.getId(),
                                 inv.getItem().getId(),
                                 inv.getItem().getName(),
                                 inv.getQuantity()
@@ -88,6 +95,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public WarehouseInventoryResponse importInventory(Integer warehouseId, InventoryMovementRequest request) {
         Warehouse warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + warehouseId));
@@ -124,6 +132,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public WarehouseInventoryResponse exportInventory(Integer warehouseId, InventoryMovementRequest request) {
         Warehouse warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + warehouseId));
@@ -164,6 +173,9 @@ public class WarehouseServiceImpl implements WarehouseService {
         response.setResourceId(warehouse.getResourceId());
         response.setSupplyId(warehouse.getSupplyId());
         response.setStatus(warehouse.getStatus());
+        response.setLatitude(warehouse.getLatitude());
+        response.setLongitude(warehouse.getLongitude());
+        response.setAddress(warehouse.getAddress());
         return response;
     }
 }

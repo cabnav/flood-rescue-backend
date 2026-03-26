@@ -15,8 +15,8 @@ public class VehicleRequest {
 
     private Integer depotId;
 
-    @NotBlank(message = "Vehicle type is required")
-    private String type;
+    @NotNull(message = "Vehicle type ID is required")
+    private Integer vehicleTypeId;
 
     private String model;
 
@@ -30,4 +30,3 @@ public class VehicleRequest {
     @NotNull(message = "Status is required")
     private Vehicle.VehicleStatus status;
 }
-

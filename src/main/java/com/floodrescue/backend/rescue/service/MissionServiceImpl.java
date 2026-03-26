@@ -7,18 +7,13 @@ import com.floodrescue.backend.citizen.repository.RequestRepository;
 import com.floodrescue.backend.common.exception.BadRequestException;
 import com.floodrescue.backend.common.exception.ResourceNotFoundException;
 import com.floodrescue.backend.common.exception.UnauthorizedAccessException;
-import com.floodrescue.backend.manager.model.Inventory;
-import com.floodrescue.backend.manager.model.MissionSupply;
-import com.floodrescue.backend.manager.model.MissionVehicle;
-import com.floodrescue.backend.manager.model.Vehicle;
-import com.floodrescue.backend.manager.repository.InventoryRepository;
-import com.floodrescue.backend.manager.repository.MissionSupplyRepository;
-import com.floodrescue.backend.manager.repository.MissionVehicleRepository;
-import com.floodrescue.backend.manager.repository.VehicleRepository;
+import com.floodrescue.backend.manager.model.*;
+import com.floodrescue.backend.manager.repository.*;
 import com.floodrescue.backend.rescue.dto.AssignedMissionResponse;
 import com.floodrescue.backend.rescue.dto.AssignMissionRequest;
 import com.floodrescue.backend.rescue.dto.AssignSuppliesRequest;
 import com.floodrescue.backend.rescue.dto.AssignVehicleRequest;
+import com.floodrescue.backend.rescue.dto.CurrentTeamMissionResponse;
 import com.floodrescue.backend.rescue.dto.MissionAssignmentResponseRequest;
 import com.floodrescue.backend.rescue.dto.MissionDetailResponse;
 import com.floodrescue.backend.rescue.dto.MissionStatusUpdateRequest;
@@ -30,6 +25,9 @@ import com.floodrescue.backend.rescue.repository.MissionAssignmentRepository;
 import com.floodrescue.backend.rescue.repository.MissionRepository;
 import com.floodrescue.backend.rescue.repository.RescueTeamRepository;
 import com.floodrescue.backend.rescue.repository.TeamMemberRepository;
+import com.floodrescue.backend.admin.service.NotificationService;
+import com.floodrescue.backend.rescue.model.Report;
+import com.floodrescue.backend.rescue.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,9 +55,12 @@ public class MissionServiceImpl implements MissionService {
     private final MissionVehicleRepository missionVehicleRepository;
     private final InventoryRepository inventoryRepository;
     private final MissionSupplyRepository missionSupplyRepository;
-
+    private final InventoryTransactionRepository inventoryTransactionRepository;
+    private final NotificationService notificationService;
+    private final ReportRepository reportRepository;
 
     @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse createMission(Integer requestId) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu với ID: " + requestId));
@@ -74,6 +76,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse getMissionById(Integer id) {
         Mission mission = missionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + id));
@@ -88,28 +91,58 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    public List<CurrentTeamMissionResponse> getActiveTeamMissions() {
+        List<Mission.MissionStatus> activeStatuses = List.of(
+                Mission.MissionStatus.ASSIGNED,
+                Mission.MissionStatus.IN_PROGRESS,
+                Mission.MissionStatus.ARRIVED);
+
+        return missionAssignmentRepository
+                .findByStatusAndMission_StatusIn(MissionAssignment.AssignmentStatus.ACCEPTED, activeStatuses)
+                .stream()
+                .map(this::mapToCurrentTeamMissionResponse)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse assignMission(Integer missionId, AssignMissionRequest request) {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + missionId));
 
         RescueTeam rescueTeam = rescueTeamRepository.findById(request.getRescueTeamId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy đội cứu hộ với ID: " + request.getRescueTeamId()));
+
+        RescueTeam.TeamStatus teamStatus = rescueTeam.getStatus();
+        if (teamStatus == RescueTeam.TeamStatus.BUSY) {
+            throw new BadRequestException("Đội cứu hộ đang bận, không thể nhận nhiệm vụ mới");
+        }
+        if (teamStatus == RescueTeam.TeamStatus.INACTIVE) {
+            throw new BadRequestException("Đội cứu hộ đang ngưng hoạt động, không thể nhận nhiệm vụ mới");
+        }
 
         MissionAssignment assignment = new MissionAssignment();
         assignment.setMission(mission);
         assignment.setRescueTeam(rescueTeam);
         assignment.setAssignedTime(LocalTime.now());
         assignment.setMissionRole(request.getMissionRole());
-        assignment.setStatus(MissionAssignment.AssignmentStatus.PENDING);
+        assignment.setStatus(MissionAssignment.AssignmentStatus.ACCEPTED);
         missionAssignmentRepository.save(assignment);
 
+        rescueTeam.setStatus(RescueTeam.TeamStatus.BUSY);
+        rescueTeamRepository.save(rescueTeam);
+
         mission.setStatus(Mission.MissionStatus.ASSIGNED);
+        mission.setStartTime(LocalDateTime.now());
         Mission saved = missionRepository.save(mission);
         return mapToResponse(saved);
     }
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public MissionDetailResponse updateMissionStatus(Integer id, MissionStatusUpdateRequest request) {
         if (request == null || request.getStatus() == null) {
             throw new BadRequestException("Cần có thông tin xác thực.");
@@ -118,6 +151,10 @@ public class MissionServiceImpl implements MissionService {
         Mission mission = missionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ với ID: " + id));
 
+        User actor = getCurrentUser();
+        boolean actorIsRescueTeam = hasRole(actor, "RESCUE_TEAM");
+        boolean actorIsCoordinator = hasRole(actor, "RESCUE_COORDINATOR");
+
         Mission.MissionStatus newStatus;
         try {
             newStatus = Mission.MissionStatus.valueOf(request.getStatus().toUpperCase(Locale.ROOT));
@@ -125,23 +162,60 @@ public class MissionServiceImpl implements MissionService {
             throw new BadRequestException("Trạng thái nhiệm vụ không hợp lệ: " + request.getStatus());
         }
 
+        boolean completingNow = newStatus == Mission.MissionStatus.COMPLETED
+                && mission.getStatus() != Mission.MissionStatus.COMPLETED;
+
+        Request linkedRequest = requestRepository.findById(mission.getRequest().getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Request not found with id: " + mission.getRequest().getId()));
+
+        LocalDateTime now = LocalDateTime.now();
         mission.setStatus(newStatus);
         if (newStatus == Mission.MissionStatus.IN_PROGRESS && mission.getStartTime() == null) {
-            mission.setStartTime(LocalDateTime.now());
+            mission.setStartTime(now);
+            linkedRequest.setStatus(Request.RequestStatus.IN_PROGRESS);
         }
-        if ((newStatus == Mission.MissionStatus.COMPLETED || newStatus == Mission.MissionStatus.CANCELLED)
+        if (newStatus == Mission.MissionStatus.ARRIVED) {
+            linkedRequest.setStatus(Request.RequestStatus.ARRIVED);
+        }
+        if ((newStatus == Mission.MissionStatus.COMPLETED
+                || newStatus == Mission.MissionStatus.CANCELLED
+                || newStatus == Mission.MissionStatus.FAILED)
                 && mission.getEndTime() == null) {
-            mission.setEndTime(LocalDateTime.now());
+            mission.setEndTime(now);
+        }
+        if (newStatus == Mission.MissionStatus.CANCELLED) {
+            linkedRequest.setStatus(Request.RequestStatus.CANCELLED);
+        }
+        if (newStatus == Mission.MissionStatus.COMPLETED && actorIsCoordinator) {
+            linkedRequest.setStatus(Request.RequestStatus.COMPLETED);
         }
 
         Mission saved = missionRepository.save(mission);
 
         if (newStatus == Mission.MissionStatus.COMPLETED) {
+            if (completingNow) {
+                createCompletionReport(saved, actor, request);
+                releaseVehiclesForMission(saved);
+                activateRescueTeamsForMission(saved);
+            }
+            if (actorIsCoordinator) {
+                notifyCitizenCompletion(linkedRequest, saved);
+            } else if (actorIsRescueTeam) {
+                notifyCoordinatorsForCompletion(saved, linkedRequest);
+            }
+        } else if (newStatus == Mission.MissionStatus.CANCELLED || newStatus == Mission.MissionStatus.FAILED) {
+            // Idempotent refund: only rows returned=false will be refunded
+            refundSuppliesForMission(saved);
             releaseVehiclesForMission(saved);
+        } else if (actorIsRescueTeam) {
+            notifyCitizen(linkedRequest, newStatus);
         }
 
         return mapToResponse(saved);
     }
+
+    // refund is idempotent via MissionSupply.returned flag
 
     @Override
     public List<AssignedMissionResponse> getMissionsAssignedToCurrentRescuer() {
@@ -151,14 +225,18 @@ public class MissionServiceImpl implements MissionService {
 
         List<MissionAssignment> assignments = missionAssignmentRepository
                 .findByRescueTeam_IdAndStatus(teamMember.getRescueTeam().getId(),
-                        MissionAssignment.AssignmentStatus.PENDING);
+                        MissionAssignment.AssignmentStatus.ACCEPTED);
 
         return assignments.stream()
+                // exclude completed missions
+                .filter(a -> a.getMission() == null
+                        || a.getMission().getStatus() != Mission.MissionStatus.COMPLETED)
                 .map(this::mapToAssignedMissionResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @SuppressWarnings("null")
     public MissionDetailResponse respondToMissionAssignment(Integer assignmentId,
             MissionAssignmentResponseRequest request) {
         if (request == null || request.getDecision() == null) {
@@ -170,7 +248,8 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new UnauthorizedAccessException("Người dùng không thuộc bất kỳ đội cứu hộ nào."));
 
         MissionAssignment assignment = missionAssignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhiệm vụ được giao với ID: " + assignmentId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy nhiệm vụ được giao với ID: " + assignmentId));
 
         if (!assignment.getRescueTeam().getId().equals(teamMember.getRescueTeam().getId())) {
             throw new UnauthorizedAccessException("Nhiệm vụ này không được giao cho nhóm của bạn");
@@ -195,7 +274,8 @@ public class MissionServiceImpl implements MissionService {
                 assignment.setDeclineReason(request.getReason());
                 break;
             default:
-                throw new BadRequestException("Quyết định không hợp lệ. Các giá trị được cho phép: ACCEPTED hoặc DECLINED");
+                throw new BadRequestException(
+                        "Quyết định không hợp lệ. Các giá trị được cho phép: ACCEPTED hoặc DECLINED");
         }
 
         missionAssignmentRepository.save(assignment);
@@ -217,6 +297,7 @@ public class MissionServiceImpl implements MissionService {
     // =====================================================================
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public MissionDetailResponse assignVehicleToMission(Integer missionId, AssignVehicleRequest request) {
         // 1. Fetch Mission
         Mission mission = missionRepository.findById(missionId)
@@ -250,6 +331,7 @@ public class MissionServiceImpl implements MissionService {
     // =====================================================================
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public MissionDetailResponse assignSuppliesToMission(Integer missionId, AssignSuppliesRequest request) {
         // 1. Fetch Mission
         Mission mission = missionRepository.findById(missionId)
@@ -272,15 +354,28 @@ public class MissionServiceImpl implements MissionService {
         }
 
         // 4. Deduct quantity from inventory
-        inventory.setQuantity(inventory.getQuantity() - request.getQuantity());
+        int beforeQuantity = inventory.getQuantity();
+        int afterQuantity = beforeQuantity - request.getQuantity();
+        inventory.setQuantity(afterQuantity);
         inventory.setLastUpdate(LocalDateTime.now());
         inventoryRepository.save(inventory);
+
+        // 4b. Log inventory transaction (OUT)
+        InventoryTransaction transaction = new InventoryTransaction();
+        transaction.setInventory(inventory);
+        transaction.setTransactionType(InventoryTransaction.TransactionType.OUT);
+        transaction.setQuantity(request.getQuantity());
+        transaction.setBeforeQuantity(beforeQuantity);
+        transaction.setAfterQuantity(afterQuantity);
+        transaction.setUser(null);
+        inventoryTransactionRepository.save(transaction);
 
         // 5. Create MissionSupply junction record
         MissionSupply missionSupply = new MissionSupply();
         missionSupply.setMission(mission);
         missionSupply.setInventory(inventory);
         missionSupply.setQuantity(request.getQuantity());
+        missionSupply.setReturned(false);
         missionSupplyRepository.save(missionSupply);
 
         return mapToResponse(mission);
@@ -301,6 +396,56 @@ public class MissionServiceImpl implements MissionService {
         }
     }
 
+    private void activateRescueTeamsForMission(Mission mission) {
+        List<MissionAssignment> assignments = missionAssignmentRepository.findByMission_Id(mission.getId());
+        if (assignments == null || assignments.isEmpty()) {
+            return;
+        }
+        for (MissionAssignment assignment : assignments) {
+            RescueTeam team = assignment.getRescueTeam();
+            if (team != null && team.getStatus() == RescueTeam.TeamStatus.BUSY) {
+                team.setStatus(RescueTeam.TeamStatus.ACTIVE);
+                rescueTeamRepository.save(team);
+            }
+        }
+    }
+
+    /**
+     * Refund supplies assigned to a mission back to inventory and log IN
+     * transactions.
+     * Only refunds MissionSupply rows where returned=false, then marks
+     * returned=true.
+     */
+    private void refundSuppliesForMission(Mission mission) {
+        List<MissionSupply> supplies = missionSupplyRepository.findByMission_IdAndReturnedFalse(mission.getId());
+        for (MissionSupply ms : supplies) {
+            Inventory inv = ms.getInventory();
+            if (inv == null) {
+                continue;
+            }
+
+            int beforeQuantity = inv.getQuantity();
+            int qty = ms.getQuantity();
+            int afterQuantity = beforeQuantity + qty;
+
+            inv.setQuantity(afterQuantity);
+            inv.setLastUpdate(LocalDateTime.now());
+            inventoryRepository.save(inv);
+
+            InventoryTransaction transaction = new InventoryTransaction();
+            transaction.setInventory(inv);
+            transaction.setTransactionType(InventoryTransaction.TransactionType.IN);
+            transaction.setQuantity(qty);
+            transaction.setBeforeQuantity(beforeQuantity);
+            transaction.setAfterQuantity(afterQuantity);
+            transaction.setUser(null);
+            inventoryTransactionRepository.save(transaction);
+
+            ms.setReturned(true);
+            missionSupplyRepository.save(ms);
+        }
+    }
+
     private MissionDetailResponse mapToResponse(Mission mission) {
         MissionDetailResponse response = new MissionDetailResponse();
         response.setId(mission.getId());
@@ -310,7 +455,51 @@ public class MissionServiceImpl implements MissionService {
         response.setStartTime(mission.getStartTime());
         response.setEndTime(mission.getEndTime());
         response.setCreatedAt(mission.getCreatedAt());
+        response.setVehicles(mapMissionVehicles(mission.getId()));
+        response.setSupplies(mapMissionSupplies(mission.getId()));
         return response;
+    }
+
+    private List<MissionDetailResponse.VehicleInfo> mapMissionVehicles(Integer missionId) {
+        return missionVehicleRepository.findByMissionId(missionId).stream()
+                .map(this::mapVehicleInfo)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private MissionDetailResponse.VehicleInfo mapVehicleInfo(MissionVehicle mv) {
+        if (mv == null || mv.getVehicle() == null) {
+            return null;
+        }
+        return new MissionDetailResponse.VehicleInfo(
+                mv.getId(),
+                mv.getVehicle().getVehicleId(),
+                mv.getVehicle().getVehicleType().getId(),
+                mv.getVehicle().getModel(),
+                mv.getVehicle().getLicensePlate(),
+                mv.getVehicle().getCapacityPerson(),
+                mv.getVehicle().getStatus());
+    }
+
+    private List<MissionDetailResponse.SupplyInfo> mapMissionSupplies(Integer missionId) {
+        return missionSupplyRepository.findByMission_IdAndReturnedFalse(missionId).stream()
+                .map(this::mapSupplyInfo)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private MissionDetailResponse.SupplyInfo mapSupplyInfo(MissionSupply ms) {
+        if (ms == null || ms.getInventory() == null || ms.getInventory().getItem() == null) {
+            return null;
+        }
+        return new MissionDetailResponse.SupplyInfo(
+                ms.getId(),
+                ms.getInventory().getId(),
+                ms.getInventory().getItem().getId(),
+                ms.getInventory().getItem().getName(),
+                ms.getInventory().getItem().getItemType(),
+                ms.getQuantity(),
+                ms.getInventory().getWarehouse() != null ? ms.getInventory().getWarehouse().getId() : null);
     }
 
     private AssignedMissionResponse mapToAssignedMissionResponse(MissionAssignment assignment) {
@@ -319,8 +508,19 @@ public class MissionServiceImpl implements MissionService {
 
         AssignedMissionResponse response = new AssignedMissionResponse();
         response.setAssignmentId(assignment.getId());
+        if (assignment.getRescueTeam() != null) {
+            response.setRescueTeamId(assignment.getRescueTeam().getId());
+            response.setRescueTeamName(assignment.getRescueTeam().getName());
+        }
         response.setStatus(assignment.getStatus());
-        response.setMission(mapToResponse(mission));
+
+        MissionDetailResponse missionDetail = mapToResponse(mission);
+        List<MissionDetailResponse.VehicleInfo> vehicleInfos = missionDetail.getVehicles();
+        List<MissionDetailResponse.SupplyInfo> supplyInfos = missionDetail.getSupplies();
+        missionDetail.setVehicles(vehicleInfos);
+        missionDetail.setSupplies(supplyInfos);
+
+        response.setMission(missionDetail);
 
         if (request != null) {
             AssignedMissionResponse.RequestInfo requestInfo = new AssignedMissionResponse.RequestInfo();
@@ -328,6 +528,35 @@ public class MissionServiceImpl implements MissionService {
             requestInfo.setLatitude(request.getLatitude());
             requestInfo.setLongitude(request.getLongitude());
             requestInfo.setPriority(request.getPriority());
+            response.setRequest(requestInfo);
+        }
+
+        return response;
+    }
+
+    private CurrentTeamMissionResponse mapToCurrentTeamMissionResponse(MissionAssignment assignment) {
+        if (assignment == null || assignment.getMission() == null || assignment.getRescueTeam() == null) {
+            return null;
+        }
+
+        Mission mission = assignment.getMission();
+        RescueTeam team = assignment.getRescueTeam();
+
+        CurrentTeamMissionResponse response = new CurrentTeamMissionResponse();
+        response.setAssignmentId(assignment.getId());
+        response.setAssignmentStatus(assignment.getStatus());
+        response.setRescueTeamId(team.getId());
+        response.setRescueTeamName(team.getName());
+        response.setRescueTeamStatus(team.getStatus());
+        response.setMission(mapToResponse(mission));
+
+        Request request = mission.getRequest();
+        if (request != null) {
+            CurrentTeamMissionResponse.RequestInfo requestInfo = new CurrentTeamMissionResponse.RequestInfo(
+                    request.getId(),
+                    request.getLatitude(),
+                    request.getLongitude(),
+                    request.getPriority());
             response.setRequest(requestInfo);
         }
 
@@ -357,5 +586,62 @@ public class MissionServiceImpl implements MissionService {
         String email = authentication.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+    }
+
+    private boolean hasRole(User user, String roleName) {
+        return user != null
+                && user.getRole() != null
+                && roleName.equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private void notifyCitizen(Request request, Mission.MissionStatus status) {
+        if (request == null || request.getUser() == null) {
+            return;
+        }
+        String message = "Yêu cầu SOS #" + request.getId() + " đã được cập nhật trạng thái nhiệm vụ: " + status;
+        sendNotification(request.getUser(), message);
+    }
+
+    private void notifyCoordinatorsForCompletion(Mission mission, Request request) {
+        List<User> coordinators = userRepository.findByRole_NameIgnoreCaseAndIsActiveTrue("RESCUE_COORDINATOR");
+        if (coordinators == null || coordinators.isEmpty()) {
+            return;
+        }
+        String message = "Nhiệm vụ #" + mission.getId() + " cho yêu cầu SOS #" + request.getId()
+                + " đã được đội cứu hộ báo hoàn thành. Vui lòng duyệt hoàn tất nhiệm vụ.";
+        coordinators.forEach(coordinator -> sendNotification(coordinator, message));
+    }
+
+    private void notifyCitizenCompletion(Request request, Mission mission) {
+        if (request == null || request.getUser() == null) {
+            return;
+        }
+        String message = "Yêu cầu SOS #" + request.getId() + " đã được xác nhận hoàn tất (nhiệm vụ #"
+                + mission.getId() + ").";
+        sendNotification(request.getUser(), message);
+    }
+
+    private void sendNotification(User user, String message) {
+        if (user == null || message == null || message.isBlank()) {
+            return;
+        }
+        notificationService.create(user.getId(), message);
+    }
+
+    private void createCompletionReport(Mission mission, User reporter, MissionStatusUpdateRequest request) {
+        if (request.getPeopleRescued() == null || request.getPeopleRescued() < 0) {
+            throw new BadRequestException("Cần nhập số người được cứu (>=0) khi hoàn tất nhiệm vụ");
+        }
+        if (request.getSummary() == null || request.getSummary().isBlank()) {
+            throw new BadRequestException("Cần nhập tóm tắt sự cố khi hoàn tất nhiệm vụ");
+        }
+        Report report = new Report();
+        report.setMission(mission);
+        report.setUser(reporter);
+        report.setPeopleRescued(request.getPeopleRescued());
+        report.setSummary(request.getSummary());
+        report.setObstacles(request.getObstacles());
+        report.setCreatedAt(LocalDateTime.now());
+        reportRepository.save(report);
     }
 }

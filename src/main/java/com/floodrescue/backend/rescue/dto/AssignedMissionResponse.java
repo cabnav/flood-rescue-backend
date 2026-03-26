@@ -7,12 +7,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssignedMissionResponse {
     private Integer assignmentId;
+    private Integer rescueTeamId;
+    private String rescueTeamName;
     private MissionAssignment.AssignmentStatus status;
     private MissionDetailResponse mission;
     private RequestInfo request;
@@ -27,4 +30,3 @@ public class AssignedMissionResponse {
         private Request.Priority priority;
     }
 }
-

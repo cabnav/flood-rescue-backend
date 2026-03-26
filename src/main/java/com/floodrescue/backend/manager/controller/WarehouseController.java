@@ -29,18 +29,21 @@ public class WarehouseController {
         return ResponseEntity.ok(ApiResponse.success("Kho hàng đã được tạo thành công", response));
     }
 
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<WarehouseDetailResponse>> getWarehouseById(@PathVariable Integer id) {
         WarehouseDetailResponse response = warehouseService.getWarehouseById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<WarehouseDetailResponse>>> getAllWarehouses() {
         List<WarehouseDetailResponse> responses = warehouseService.getAllWarehouses();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
+    @PreAuthorize("hasAnyRole('RESCUE_COORDINATOR', 'MANAGER')")
     @GetMapping("/{id}/inventory")
     public ResponseEntity<ApiResponse<WarehouseInventoryResponse>> getWarehouseInventory(@PathVariable Integer id) {
         WarehouseInventoryResponse response = warehouseService.getWarehouseInventory(id);

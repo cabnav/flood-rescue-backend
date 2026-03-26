@@ -1,5 +1,6 @@
 package com.floodrescue.backend.rescue.model;
 
+import com.floodrescue.backend.manager.model.Warehouse;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,9 +19,20 @@ public class RescueTeam {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private TeamStatus status;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
+
+    public enum TeamStatus {
+        ACTIVE,
+        BUSY,
+        INACTIVE
+    }
 }

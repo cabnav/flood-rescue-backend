@@ -30,4 +30,8 @@ public class Inventory {
 
     @Column(name = "last_update", nullable = false)
     private LocalDateTime lastUpdate = LocalDateTime.now();
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }
